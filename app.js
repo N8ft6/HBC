@@ -46,7 +46,7 @@
     'q3': 'Où et quand le club se réunit-il ?', 'a3': "À la Faculté des Sciences, au centre d'Alger. Les membres inscrits reçoivent la date de chaque réunion par e-mail.",
     'q4': 'Que se passe-t-il après mon inscription ?', 'a4': "Vous recevez tout de suite un e-mail de confirmation. Le bureau examine ensuite votre inscription et vous envoie un second e-mail avec sa réponse, votre cellule (votre premier choix si possible) et la date de la prochaine réunion.",
     'q5': 'Puis-je proposer mon propre projet ?', 'a5': "Oui, mentionnez-le dans le formulaire d'inscription. La cellule Développement de projets l'étudiera avec vous et vous aidera à en faire une initiative concrète.",
-    'q6': 'Que faites-vous de mes données personnelles ?', 'a6': "Vos réponses sont enregistrées dans un tableau Google privé, visible uniquement par le bureau du club. Elles servent seulement à traiter votre inscription et à vous contacter au sujet du club, et ne sont jamais partagées. Elles sont conservées le temps de la saison 2026-2027, puis supprimées. Pour consulter, corriger ou supprimer vos données, écrivez à hopebuds.club@univ-alger.dz.",
+    'q6': 'Que faites-vous de mes données personnelles ?', 'a6': "Vos réponses sont enregistrées dans un tableau Google privé, visible uniquement par le bureau du club. Elles servent seulement à traiter votre inscription et à vous contacter au sujet du club, et ne sont jamais partagées. Au moment de l'envoi, une vérification anti-robot de Cloudflare (Turnstile) est effectuée. Elles sont conservées le temps de la saison 2026-2027, puis supprimées. Pour consulter, corriger ou supprimer vos données, écrivez à hopebuds.club@univ-alger.dz.",
     'cell.eyebrow': 'Trouvez votre équipe', 'cell.h2': 'Quatre cellules, <em>un seul club</em>',
     'cell.p': "Voici comment le club s'organise. À l'inscription, vous choisissez la cellule que vous aimeriez le plus rejoindre : ce sera votre équipe pour la saison.",
     'cell.join': 'Rejoindre cette cellule', 'cell.any': "Pas encore sûr ? Choisissez « Je suis prêt à rejoindre la cellule où l'on aura besoin de moi » dans le formulaire, et le bureau vous placera là où vous serez le plus utile.",
@@ -1042,8 +1042,9 @@
     mailSentEnd: L('. Not in your inbox within a few minutes? Check your spam folder.', '. Rien reçu d\'ici quelques minutes ? Pensez à vérifier vos spams.'),
     mailFail: L("Your registration is saved, but we couldn't send the confirmation email. Don't worry: the committee will still contact you.", "Votre inscription est bien enregistrée, mais l'e-mail de confirmation n'a pas pu être envoyé. Pas d'inquiétude : le bureau vous contactera quand même."),
     nameBad: L('Please use letters only: spaces, hyphens and apostrophes are fine, but no numbers, dots or links.', 'Utilisez uniquement des lettres : les espaces, tirets et apostrophes sont acceptés, mais pas les chiffres, les points ni les liens.'),
-    privacy: L('Your answers are stored in a private Google Sheet that only the club committee can see. We use them only to process your registration and to contact you about the club, and we never share them. They are kept for the 2026–2027 season, then deleted. To see, correct or delete your data, write to hopebuds.club@univ-alger.dz.', 'Vos réponses sont enregistrées dans un tableau Google privé, visible uniquement par le bureau du club. Elles servent seulement à traiter votre inscription et à vous contacter au sujet du club, et ne sont jamais partagées. Elles sont conservées le temps de la saison 2026-2027, puis supprimées. Pour consulter, corriger ou supprimer vos données, écrivez à hopebuds.club@univ-alger.dz.'),
-    closed: L('Registrations are closed for the moment. Follow us on Instagram to know when they reopen.', 'Les inscriptions sont fermées pour le moment. Suivez-nous sur Instagram pour savoir quand elles rouvrent.')
+    privacy: L('Your answers are stored in a private Google Sheet that only the club committee can see. We use them only to process your registration and to contact you about the club, and we never share them. When you submit, an anti-robot check by Cloudflare (Turnstile) runs. They are kept for the 2026–2027 season, then deleted. To see, correct or delete your data, write to hopebuds.club@univ-alger.dz.', 'Vos réponses sont enregistrées dans un tableau Google privé, visible uniquement par le bureau du club. Elles servent seulement à traiter votre inscription et à vous contacter au sujet du club, et ne sont jamais partagées. Au moment de l\'envoi, une vérification anti-robot de Cloudflare (Turnstile) est effectuée. Elles sont conservées le temps de la saison 2026-2027, puis supprimées. Pour consulter, corriger ou supprimer vos données, écrivez à hopebuds.club@univ-alger.dz.'),
+    closed: L('Registrations are closed for the moment. Follow us on Instagram to know when they reopen.', 'Les inscriptions sont fermées pour le moment. Suivez-nous sur Instagram pour savoir quand elles rouvrent.'),
+    captcha: L("The anti-robot check didn't succeed. Your answers are kept: wait a moment, then try again. If it keeps failing, try another browser or turn off your VPN.", "La vérification anti-robot n'a pas abouti. Vos réponses sont conservées : patientez un instant puis réessayez. Si cela continue, essayez un autre navigateur ou désactivez votre VPN.")
   };
   // Same rules as the Google script (apps-script/Code.gs): letters (Latin, accented or Arabic) separated by a space, ' or -
   const NAME_RE = /^(?=.{2,80}$)[A-Za-z\u00C0-\u024F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF][A-Za-z\u00C0-\u024F\u0300-\u036F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]*(?:[ '\u2019-][A-Za-z\u00C0-\u024F\u0300-\u036F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+)*$/;
@@ -1204,6 +1205,36 @@
     if (!tokenReq) tokenReq = fetch(FORM_ENDPOINT + '?action=token').then(r => r.json()).then(j => (regToken = (j && j.token) || null)).catch(() => null).finally(() => { tokenReq = null; });
     return tokenReq;
   }
+
+  /* --- Anti-robot Cloudflare Turnstile: loaded only once the visitor opens the form, and run at submit time.
+         Usually invisible; a checkbox only appears if Cloudflare has a doubt. The Google script checks the proof.
+         Empty TURNSTILE_SITEKEY = switched off. On localhost, Cloudflare's official test key is used instead. --- */
+  const TURNSTILE_SITEKEY = '0x4AAAAAAF_PDRH8ytB3mUiA'; // public key (Cloudflare → Turnstile → HBC inscriptions)
+  const TS_KEY = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '1x00000000000000000000AA' : TURNSTILE_SITEKEY;
+  let tsLib = null, tsWidget = null, tsWait = null;
+  function loadTurnstile() {
+    if (!TURNSTILE_SITEKEY) return Promise.resolve(null);
+    if (!tsLib) tsLib = new Promise(resolve => {
+      window.hbcTurnstileReady = () => resolve(window.turnstile || null);
+      const s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=hbcTurnstileReady';
+      s.async = true; s.onerror = () => { tsLib = null; resolve(null); };
+      document.head.append(s);
+    });
+    return tsLib;
+  }
+  async function getTurnstileProof() {
+    const ts = await loadTurnstile(); if (!ts) return '';
+    const done = v => { if (tsWait) { const w = tsWait; tsWait = null; clearTimeout(w.timer); w.resolve(v || ''); } };
+    if (tsWidget == null) {
+      tsWidget = ts.render('#tsBox', {
+        sitekey: TS_KEY, action: 'register', execution: 'execute', appearance: 'interaction-only',
+        language: lang, theme: 'auto', size: 'flexible',
+        callback: t => done(t), 'error-callback': () => { done(''); return true; }, 'timeout-callback': () => done('')
+      });
+    } else ts.reset(tsWidget);
+    return new Promise(resolve => { tsWait = { resolve, timer: setTimeout(() => done(''), 120000) }; ts.execute(tsWidget); });
+  }
   const openDlg = d => { if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', ''); };
   const closeDlg = d => { if (typeof d.close === 'function') d.close(); else d.removeAttribute('open'); };
   $$('[data-register]').forEach(b => b.addEventListener('click', e => {
@@ -1341,18 +1372,23 @@
   // Returns { mode: 'sent' | 'demo', mail?: 'sent' | 'failed' }
   // Sent as plain text so the browser makes a "simple" request (no CORS preflight, which Apps Script can't answer).
   // The script may ask to wait (form sent less than 15 s after opening) or for a new token (expired): handled here, invisibly.
+  // A Turnstile proof works once and is checked after the wait/token checks, so a new one is fetched except after 'wait'.
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   async function save(d) {
     if (!FORM_ENDPOINT) return { mode: 'demo' };
-    for (let attempt = 0; attempt < 4; attempt++) {
+    let needProof = true, captchaTries = 0;
+    for (let attempt = 0; attempt < 5; attempt++) {
       d.token = await getToken();
       if (!d.token) throw new Error('network');
+      if (needProof) d.ts = await getTurnstileProof();
       const r = await fetch(FORM_ENDPOINT, { method: 'POST', body: JSON.stringify(d) });
       if (!r.ok) throw new Error('http ' + r.status);
       let res = {}; try { res = await r.json(); } catch (e) {}
       if (res.ok) { getToken(true); return { mode: 'sent', mail: res.mail }; } // a token works once: fetch the next one
+      needProof = res.error !== 'wait';
       if (res.error === 'wait') { await sleep((Math.min(+res.wait || 5, 20) + 1) * 1000); continue; }
       if (res.error === 'expired' || res.error === 'token') { await getToken(true); continue; }
+      if (res.error === 'captcha' && ++captchaTries < 2) continue;
       throw new Error(res.error || 'endpoint');
     }
     throw new Error('endpoint');
@@ -1383,7 +1419,7 @@
       formView.hidden = true; doneView.hidden = false; regForm.reset(); syncChoice2(); showStep(0, true); regDialog.scrollTop = 0;
     } catch (err) {
       const why = err && err.message;
-      setErr('submit', why === 'busy' ? FT.busy : why === 'closed' ? FT.closed : FT.fail);
+      setErr('submit', why === 'busy' ? FT.busy : why === 'closed' ? FT.closed : why === 'captcha' ? FT.captcha : FT.fail);
     } finally { btn.disabled = false; lbl.textContent = tx(FT.submit); }
   });
   showStep(0, true);

@@ -40,7 +40,10 @@ const CONFIG = {
   // Durée de validité du jeton de formulaire, en heures (6 au maximum)
   TOKEN_MAX_HOURS: 6,
   // Nombre d'e-mails gardés en réserve sur le quota quotidien (~100), pour les tests et l'alerte bureau
-  MAIL_RESERVE: 5
+  MAIL_RESERVE: 5,
+  // Anti-robot Cloudflare Turnstile : actif dès que la propriété du script TURNSTILE_SECRET existe (voir GUIDE.md).
+  // Seules les vérifications faites sur ces adresses sont acceptées.
+  TURNSTILE_HOSTNAMES: ['n8ft6.github.io']
 };
 /* =========================================================== */
 
@@ -143,6 +146,9 @@ function handlePost_(e) {
   d.lang = d.lang === 'fr' ? 'fr' : 'en';
   d.season = CONFIG.SEASON; // jamais la valeur envoyée par le navigateur
 
+  // 4b. Anti-robot Cloudflare Turnstile : Cloudflare confirme qu'un humain, sur notre site, a fait la vérification
+  if (turnstileCheck_(d.ts) !== 'ok') return answer_('captcha', { ok: false, error: 'captcha' });
+
   // 5. Limite de débit : protège le tableau contre une vague d'envois
   if (!underHourlyLimit_('rows', CONFIG.ROWS_PER_HOUR)) return answer_('busy', { ok: false, error: 'busy' });
 
@@ -179,6 +185,33 @@ function handlePost_(e) {
     try { notifyCommittee_(d, sheet); } catch (err) { console.error('Alerte bureau non envoyée : ' + err); }
   }
   return answer_('registered', { ok: true, mail: mail });
+}
+
+/* ---------- Anti-robot Cloudflare Turnstile ----------
+   Le site obtient une preuve (jeton Turnstile) auprès de Cloudflare au moment de l'envoi ; le script la fait
+   vérifier par Cloudflare avec la clé secrète, gardée dans les propriétés du script (jamais dans le code).
+   Sans clé installée, la vérification est simplement sautée (réponse 'ok'). */
+function turnstileCheck_(token) {
+  const secret = PropertiesService.getScriptProperties().getProperty('TURNSTILE_SECRET');
+  if (!secret) return 'ok';
+  if (typeof token !== 'string' || !token || token.length > 2048) return 'missing';
+  const j = turnstileVerify_(secret, token);
+  if (!j || j.success !== true) return 'refused';
+  const testing = j.metadata && j.metadata.result_with_testing_key; // clés de test officielles de Cloudflare (développement)
+  if (!testing && CONFIG.TURNSTILE_HOSTNAMES.indexOf(j.hostname) < 0) return 'hostname';
+  if (!testing && j.action && j.action !== 'register') return 'action';
+  return 'ok';
+}
+function turnstileVerify_(secret, token) {
+  try {
+    const res = UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'post', payload: { secret: secret, response: token }, muteHttpExceptions: true
+    });
+    return res.getResponseCode() === 200 ? JSON.parse(res.getContentText()) : null;
+  } catch (err) {
+    console.error('Turnstile injoignable : ' + err); // en cas de panne de Cloudflare, l'inscription est refusée (prudence)
+    return null;
+  }
 }
 
 // Remet un champ dans la forme attendue : texte coupé à la longueur maximale, ou liste de textes
@@ -426,7 +459,7 @@ function defang_(s) {
 
 /* ---------- Rapport de sécurité ----------
    Chaque réponse du script est comptée par heure (6 dernières heures, mémoire temporaire de Google). */
-const STAT_KINDS_ = ['registered', 'duplicate', 'wait', 'token', 'expired', 'invalid', 'honeypot', 'bad_request', 'busy', 'closed', 'server'];
+const STAT_KINDS_ = ['registered', 'duplicate', 'wait', 'token', 'expired', 'invalid', 'captcha', 'honeypot', 'bad_request', 'busy', 'closed', 'server'];
 function hourKey_(d) { return Utilities.formatDate(d || new Date(), 'UTC', 'yyyyMMddHH'); }
 function stat_(kind) {
   try {
@@ -458,6 +491,16 @@ function testEmail() {
   console.log('✅ Installation correcte. E-mails de test envoyés à ' + me + '. Quota restant aujourd’hui : ' + MailApp.getRemainingDailyQuota());
   console.log('Les inscriptions arrivent dans : ' + sheet.getParent().getUrl() + ' (onglet « ' + CONFIG.SHEET_NAME + ' »)');
   console.log(PropertiesService.getScriptProperties().getProperty('INSCRIPTIONS') === 'fermees' ? '🔒 Les inscriptions sont FERMÉES (ouvrirInscriptions pour rouvrir).' : '🟢 Les inscriptions sont ouvertes.');
+  // Anti-robot : on envoie à Cloudflare une fausse preuve ; une clé secrète valide répond « preuve invalide »
+  const tsSecret = PropertiesService.getScriptProperties().getProperty('TURNSTILE_SECRET');
+  if (!tsSecret) console.log('⚪ Anti-robot Turnstile : pas encore activé (propriété TURNSTILE_SECRET absente).');
+  else {
+    const j = turnstileVerify_(tsSecret, 'test-invalide');
+    const codes = (j && j['error-codes']) || [];
+    if (codes.indexOf('invalid-input-secret') >= 0) throw new Error('Anti-robot Turnstile : la clé secrète TURNSTILE_SECRET est fausse. Recopiez-la depuis Cloudflare.');
+    if (!j) throw new Error('Anti-robot Turnstile : Cloudflare ne répond pas. Réessayez dans un moment.');
+    console.log('🛡️ Anti-robot Turnstile : ACTIF, clé secrète valide.');
+  }
 }
 
 // Ce que le script a reçu ces 6 dernières heures : inscriptions, robots bloqués, tentatives refusées…
@@ -473,6 +516,7 @@ function rapportSecurite() {
   console.log('Rapport de sécurité (heure par heure, la plus récente en premier)\n' + lines.join('\n') +
     '\n\nregistered = inscription enregistrée · duplicate = adresse déjà inscrite · wait = envoyé trop vite (réessai automatique)' +
     '\ntoken / expired = jeton absent, falsifié, périmé ou réutilisé · invalid = champs refusés · honeypot = robot piégé' +
+    '\ncaptcha = vérification anti-robot Cloudflare échouée' +
     '\nbad_request = envoi mal formé · busy = limite horaire · closed = inscriptions fermées · server = erreur interne');
 }
 

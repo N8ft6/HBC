@@ -94,7 +94,19 @@ Enregistrez, puis publiez le site (commit + push). Vous pouvez aussi me demander
   - **liens neutralisés** : dans les réponses libres, `https://site.com` devient `hxxps[:]//site[.]com`. Le texte reste lisible, mais le bureau ne peut pas cliquer par erreur sur un lien piégé ;
   - **chaque champ vérifié par le script** : téléphone au bon format, longueurs maximales, nombre de cases cochées limité. Le navigateur ne suffit pas, il se contourne facilement ;
   - **erreurs muettes** : en cas de problème, le visiteur reçoit seulement « erreur », jamais un message interne. Le détail est dans le **journal d'exécution**.
-- **Autorisations figées** : le fichier `appsscript.json` (dans ce dossier) fixe la liste exacte des droits du script : son seul tableau, l'envoi d'e-mails et votre adresse. Pour l'installer : ⚙️ **Paramètres du projet** → cochez **« Afficher le fichier manifeste "appsscript.json" dans l'éditeur »**, puis remplacez son contenu dans l'éditeur.
+- **Autorisations figées** : le fichier `appsscript.json` (dans ce dossier) fixe la liste exacte des droits du script : son seul tableau, l'envoi d'e-mails, votre adresse et l'appel à Cloudflare pour l'anti-robot. Pour l'installer : ⚙️ **Paramètres du projet** → cochez **« Afficher le fichier manifeste "appsscript.json" dans l'éditeur »**, puis remplacez son contenu dans l'éditeur.
+
+## Anti-robot Cloudflare Turnstile
+
+Au moment de l'envoi, le site demande à Cloudflare une preuve que le visiteur est humain (le plus souvent sans rien lui montrer ; une case à cocher n'apparaît qu'en cas de doute). Le script fait vérifier cette preuve par Cloudflare avant d'enregistrer quoi que ce soit.
+
+1. Sur <https://dash.cloudflare.com> (compte gratuit) : **Turnstile → Add widget**. Nom : `HBC inscriptions`, hostname : `n8ft6.github.io`, mode : **Managed**. Cloudflare donne deux clés :
+   - la **Site Key**, publique : elle va dans `app.js` (`TURNSTILE_SITEKEY`) ;
+   - la **Secret Key**, **secrète** : ne l'écrivez jamais dans le code ni dans un message.
+2. Dans l'éditeur Apps Script : ⚙️ **Paramètres du projet → Propriétés du script → Ajouter une propriété du script**. Propriété : `TURNSTILE_SECRET`, valeur : la Secret Key. Enregistrez.
+3. Lancez **`testEmail`** : il doit afficher « 🛡️ Anti-robot Turnstile : ACTIF, clé secrète valide ».
+
+La vérification est active dès que la propriété existe, sans nouveau déploiement. Pour la couper (par exemple si Cloudflare a une panne), supprimez la propriété `TURNSTILE_SECRET`. En cas de fuite de la Secret Key : dans Cloudflare, **Rotate secret key**, puis remplacez la valeur de la propriété.
 
 ## En cas d'attaque ou de doute
 
