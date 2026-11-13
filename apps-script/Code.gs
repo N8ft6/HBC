@@ -192,7 +192,7 @@ function handlePost_(e) {
    vérifier par Cloudflare avec la clé secrète, gardée dans les propriétés du script (jamais dans le code).
    Sans clé installée, la vérification est simplement sautée (réponse 'ok'). */
 function turnstileCheck_(token) {
-  const secret = PropertiesService.getScriptProperties().getProperty('TURNSTILE_SECRET');
+  const secret = (PropertiesService.getScriptProperties().getProperty('TURNSTILE_SECRET') || '').trim();
   if (!secret) return 'ok';
   if (typeof token !== 'string' || !token || token.length > 2048) return 'missing';
   const j = turnstileVerify_(secret, token);
@@ -207,9 +207,15 @@ function turnstileVerify_(secret, token) {
     const res = UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'post', payload: { secret: secret, response: token }, muteHttpExceptions: true
     });
-    return res.getResponseCode() === 200 ? JSON.parse(res.getContentText()) : null;
+    // Cloudflare répond 200 ou 400 (clé ou preuve invalide) : dans les deux cas, la réponse JSON fait foi
+    let j = null;
+    try { j = JSON.parse(res.getContentText()); } catch (e) { /* pas du JSON */ }
+    if (j && typeof j.success === 'boolean') return j;
+    console.error('Turnstile : réponse inattendue de Cloudflare (HTTP ' + res.getResponseCode() + ')');
+    return null;
   } catch (err) {
-    console.error('Turnstile injoignable : ' + err); // en cas de panne de Cloudflare, l'inscription est refusée (prudence)
+    // Cloudflare injoignable, ou droit « service externe » absent (voir appsscript.json) : l'inscription est refusée (prudence)
+    console.error('Turnstile injoignable : ' + err);
     return null;
   }
 }
@@ -492,13 +498,14 @@ function testEmail() {
   console.log('Les inscriptions arrivent dans : ' + sheet.getParent().getUrl() + ' (onglet « ' + CONFIG.SHEET_NAME + ' »)');
   console.log(PropertiesService.getScriptProperties().getProperty('INSCRIPTIONS') === 'fermees' ? '🔒 Les inscriptions sont FERMÉES (ouvrirInscriptions pour rouvrir).' : '🟢 Les inscriptions sont ouvertes.');
   // Anti-robot : on envoie à Cloudflare une fausse preuve ; une clé secrète valide répond « preuve invalide »
-  const tsSecret = PropertiesService.getScriptProperties().getProperty('TURNSTILE_SECRET');
+  const tsSecret = (PropertiesService.getScriptProperties().getProperty('TURNSTILE_SECRET') || '').trim();
   if (!tsSecret) console.log('⚪ Anti-robot Turnstile : pas encore activé (propriété TURNSTILE_SECRET absente).');
   else {
     const j = turnstileVerify_(tsSecret, 'test-invalide');
     const codes = (j && j['error-codes']) || [];
-    if (codes.indexOf('invalid-input-secret') >= 0) throw new Error('Anti-robot Turnstile : la clé secrète TURNSTILE_SECRET est fausse. Recopiez-la depuis Cloudflare.');
-    if (!j) throw new Error('Anti-robot Turnstile : Cloudflare ne répond pas. Réessayez dans un moment.');
+    if (!j) throw new Error('Anti-robot Turnstile : impossible de joindre Cloudflare. Vérifiez que appsscript.json contient le droit « script.external_request » (puis relancez testEmail et acceptez l’autorisation), ou réessayez dans un moment.');
+    if (codes.indexOf('invalid-input-secret') >= 0 || codes.indexOf('missing-input-secret') >= 0) throw new Error('Anti-robot Turnstile : la clé secrète TURNSTILE_SECRET est fausse. Recopiez la « Secret Key » depuis Cloudflare, sans espace avant ni après.');
+    if (codes.indexOf('invalid-input-response') < 0) throw new Error('Anti-robot Turnstile : réponse inattendue de Cloudflare (' + (codes.join(', ') || 'aucun code') + ').');
     console.log('🛡️ Anti-robot Turnstile : ACTIF, clé secrète valide.');
   }
 }
