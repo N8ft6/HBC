@@ -1,0 +1,9 @@
+# Fichiers locaux à ne jamais publier
+.claude/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+.env
+*.bundle
