@@ -1231,7 +1231,8 @@
     const ts = await loadTurnstile();
     if (!ts || tsWidget != null) return;
     tsWidget = ts.render('#tsBox', {
-      sitekey: TS_KEY, action: 'register', appearance: 'always', language: lang, theme: 'auto', size: 'flexible',
+      sitekey: TS_KEY, action: 'register', appearance: 'always', language: lang, size: 'flexible',
+      theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light', // same look as the site
       'refresh-expired': 'auto', retry: 'auto',
       callback: t => { tsToken = t; tsErrCode = ''; tsWake(); },
       'expired-callback': () => { tsToken = ''; },

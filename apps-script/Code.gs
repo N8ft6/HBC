@@ -131,8 +131,9 @@ function handlePost_(e) {
   if (tk.s === 'expired') return answer_('expired', { ok: false, error: 'expired' });
 
   // 4. Contrôle des champs essentiels
-  const email = String(d.email || '').trim().toLowerCase();
-  const name = String(d.name || '').replace(/\s+/g, ' ').trim();
+  // Seulement du texte : un objet piégé (avec un faux « toString ») est refusé au lieu de faire planter le script
+  const email = typeof d.email === 'string' ? d.email.trim().toLowerCase() : '';
+  const name = typeof d.name === 'string' ? d.name.replace(/\s+/g, ' ').trim() : '';
   if (name.length < 2 || name.length > 80 || !NAME_RE.test(name)) return answer_('invalid', { ok: false, error: 'invalid' });
   if (email.length > 120 || !EMAIL_RE.test(email)) return answer_('invalid', { ok: false, error: 'invalid' });
   if (d.consent !== true) return answer_('invalid', { ok: false, error: 'invalid' });
@@ -199,7 +200,7 @@ function turnstileCheck_(token) {
   if (!j || j.success !== true) return 'refused';
   const testing = j.metadata && j.metadata.result_with_testing_key; // clés de test officielles de Cloudflare (développement)
   if (!testing && CONFIG.TURNSTILE_HOSTNAMES.indexOf(j.hostname) < 0) return 'hostname';
-  if (!testing && j.action && j.action !== 'register') return 'action';
+  if (!testing && j.action !== 'register') return 'action'; // le site demande toujours la preuve pour l'action « register »
   return 'ok';
 }
 function turnstileVerify_(secret, token) {
@@ -267,7 +268,8 @@ function newToken_() {
   return msg + '.' + sign_(msg);
 }
 function checkToken_(tok) {
-  const m = /^(\d{13})\.([0-9a-f]{32})\.([A-Za-z0-9_-]{43})$/.exec(String(tok || ''));
+  if (typeof tok !== 'string' || tok.length > 200) return { s: 'bad' };
+  const m = /^(\d{13})\.([0-9a-f]{32})\.([A-Za-z0-9_-]{43})$/.exec(tok);
   if (!m || !sameText_(sign_(m[1] + '.' + m[2]), m[3])) return { s: 'bad' };
   const age = Date.now() - Number(m[1]), min = CONFIG.MIN_FILL_SECONDS * 1000;
   if (age < -60000) return { s: 'bad' };
