@@ -94,7 +94,7 @@ Enregistrez, puis publiez le site (commit + push). Vous pouvez aussi me demander
   - **liens neutralisés** : dans les réponses libres, `https://site.com` devient `hxxps[:]//site[.]com`. Le texte reste lisible, mais le bureau ne peut pas cliquer par erreur sur un lien piégé ;
   - **chaque champ vérifié par le script** : téléphone au bon format, longueurs maximales, nombre de cases cochées limité. Le navigateur ne suffit pas, il se contourne facilement ;
   - **erreurs muettes** : en cas de problème, le visiteur reçoit seulement « erreur », jamais un message interne. Le détail est dans le **journal d'exécution**.
-- **Autorisations figées** : le fichier `appsscript.json` (dans ce dossier) fixe la liste exacte des droits du script : son seul tableau, l'envoi d'e-mails, votre adresse et l'appel à Cloudflare pour l'anti-robot. Pour l'installer : ⚙️ **Paramètres du projet** → cochez **« Afficher le fichier manifeste "appsscript.json" dans l'éditeur »**, puis remplacez son contenu dans l'éditeur.
+- **Autorisations figées** : le fichier `appsscript.json` (dans ce dossier) fixe la liste exacte des droits du script : son seul tableau, l'envoi d'e-mails, votre adresse, l'appel à Cloudflare pour l'anti-robot et la mise à jour automatique de l'onglet « Sécurité ». Pour l'installer : ⚙️ **Paramètres du projet** → cochez **« Afficher le fichier manifeste "appsscript.json" dans l'éditeur »**, puis remplacez son contenu dans l'éditeur.
 
 ## Anti-robot Cloudflare Turnstile
 
@@ -114,6 +114,7 @@ Ces fonctions se lancent depuis l'éditeur (liste en haut → ▶ Exécuter) et 
 
 | Fonction | Quand l'utiliser |
 |---|---|
+| `installerOngletSecurite` | **Une seule fois.** Crée l'onglet **« Sécurité »** du tableau, mis à jour automatiquement chaque heure : une ligne par heure, la plus récente en haut, avec un **Bilan** en clair (✅ Calme, ✅ inscriptions, ⚠️ activité suspecte, 🚨 attaque probable, ❗ erreur interne). Pratique à suivre depuis l'application Google Sheets du téléphone. 30 jours sont gardés. |
 | `rapportSecurite` | Voir ce que le script a reçu ces 6 dernières heures (inscriptions, robots bloqués, tentatives refusées). Le résultat s'affiche dans le journal d'exécution. |
 | `fermerInscriptions` | Attaque en cours, ou fin de la saison : plus aucune inscription n'est acceptée, le site affiche « les inscriptions sont fermées ». |
 | `ouvrirInscriptions` | Rouvrir les inscriptions. |

@@ -510,6 +510,13 @@ function testEmail() {
     if (codes.indexOf('invalid-input-response') < 0) throw new Error('Anti-robot Turnstile : réponse inattendue de Cloudflare (' + (codes.join(', ') || 'aucun code') + ').');
     console.log('🛡️ Anti-robot Turnstile : ACTIF, clé secrète valide.');
   }
+  // Onglet « Sécurité » : la mise à jour automatique est-elle en place ?
+  try {
+    const on = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'majOngletSecurite');
+    console.log(on ? '📊 Onglet « Sécurité » : mis à jour automatiquement chaque heure.' : '⚪ Onglet « Sécurité » : pas encore installé (lancez installerOngletSecurite).');
+  } catch (err) {
+    console.log('⚪ Onglet « Sécurité » : droit « script.scriptapp » absent de appsscript.json.');
+  }
 }
 
 // Ce que le script a reçu ces 6 dernières heures : inscriptions, robots bloqués, tentatives refusées…
@@ -527,6 +534,74 @@ function rapportSecurite() {
     '\ntoken / expired = jeton absent, falsifié, périmé ou réutilisé · invalid = champs refusés · honeypot = robot piégé' +
     '\ncaptcha = vérification anti-robot Cloudflare échouée' +
     '\nbad_request = envoi mal formé · busy = limite horaire · closed = inscriptions fermées · server = erreur interne');
+}
+
+/* ---------- Onglet « Sécurité » du tableau (à suivre depuis l'application Google Sheets) ----------
+   Chaque heure, une ligne est ajoutée EN HAUT de l'onglet : le bilan de l'heure écoulée (inscriptions,
+   robots bloqués, tentatives refusées) et un verdict en clair dans la colonne « Bilan ». 30 jours sont gardés.
+   À installer une seule fois avec installerOngletSecurite. */
+const SECURITY_SHEET = 'Sécurité';
+const SECURITY_HEAD = ['Heure', 'Bilan', 'Inscriptions', 'Déjà inscrits', 'Trop rapides', 'Jeton refusé', 'Jeton périmé',
+  'Champs refusés', 'Anti-robot refusé', 'Robots piégés', 'Envois mal formés', 'Limite horaire', 'Fermé', 'Erreurs internes'];
+const SECURITY_KEEP_ROWS = 24 * 30;
+
+// Lancée automatiquement chaque heure : écrit les heures terminées qui ne sont pas encore dans l'onglet
+function majOngletSecurite() {
+  const props = PropertiesService.getScriptProperties(), cache = CacheService.getScriptCache();
+  const nowH = Math.floor(Date.now() / 3600000);                    // numéro de l'heure en cours
+  let last = Number(props.getProperty('SECURITE_DERNIERE_HEURE'));
+  if (!(last >= nowH - 6)) last = nowH - 2;                           // la mémoire temporaire garde 6 heures au plus
+  const rows = [], colors = [];
+  for (let h = last + 1; h <= nowH - 1; h++) {                        // seulement les heures terminées
+    const d = new Date(h * 3600000), hk = hourKey_(d);
+    const counts = cache.getAll(STAT_KINDS_.map(k => 'stat-' + hk + '-' + k));
+    const n = {}; STAT_KINDS_.forEach(k => { n[k] = Number(counts['stat-' + hk + '-' + k] || 0); });
+    const verdict = securityVerdict_(n);
+    rows.push([d, verdict[0]].concat(STAT_KINDS_.map(k => n[k])));
+    colors.push([null, verdict[1]].concat(STAT_KINDS_.map(() => null)));
+  }
+  if (!rows.length) return;
+  const sh = securitySheet_();
+  sh.insertRowsAfter(1, rows.length);
+  sh.getRange(2, 1, rows.length, SECURITY_HEAD.length).setValues(rows.reverse()).setBackgrounds(colors.reverse());
+  sh.getRange(2, 1, rows.length, 1).setNumberFormat('dd/mm/yyyy hh"h"');
+  if (sh.getLastRow() > SECURITY_KEEP_ROWS + 1) sh.deleteRows(SECURITY_KEEP_ROWS + 2, sh.getLastRow() - SECURITY_KEEP_ROWS - 1);
+  props.setProperty('SECURITE_DERNIERE_HEURE', String(nowH - 1));
+}
+
+// Le verdict de l'heure, en clair, et sa couleur
+function securityVerdict_(n) {
+  const refused = n.token + n.expired + n.invalid + n.captcha + n.honeypot + n.bad_request;
+  if (n.server > 0) return ['❗ Erreur interne : voir Exécutions dans Apps Script', '#f4c7c3'];
+  if (refused >= 30) return ['🚨 Attaque probable (' + refused + ' refus) : si ça continue, lancez fermerInscriptions', '#f4c7c3'];
+  if (refused >= 10) return ['⚠️ Activité suspecte (' + refused + ' refus)', '#fce8b2'];
+  if (n.closed > 0) return ['🔒 Inscriptions fermées', '#e8eaed'];
+  if (n.busy > 0) return ['⏳ Limite horaire atteinte', '#fce8b2'];
+  if (n.registered + n.duplicate > 0) return ['✅ ' + n.registered + ' inscription(s)' + (refused ? ', ' + refused + ' refus' : ''), '#d9ead3'];
+  return [refused ? '✅ Calme (' + refused + ' refus)' : '✅ Calme', null];
+}
+
+function securitySheet_() {
+  const ss = getSpreadsheet_();
+  let sh = ss.getSheetByName(SECURITY_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(SECURITY_SHEET);
+    sh.getRange(1, 1, 1, SECURITY_HEAD.length).setValues([SECURITY_HEAD]).setFontWeight('bold').setBackground('#dcefc9');
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(1, 120); sh.setColumnWidth(2, 330);
+    // Avertissement si quelqu'un essaie de modifier l'onglet à la main (le script, lui, peut toujours écrire)
+    sh.protect().setDescription('Rempli automatiquement par le script : ne pas modifier').setWarningOnly(true);
+  }
+  return sh;
+}
+
+// À lancer UNE fois : crée l'onglet « Sécurité » et la mise à jour automatique toutes les heures
+function installerOngletSecurite() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'majOngletSecurite').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('majOngletSecurite').timeBased().everyHours(1).create();
+  securitySheet_();
+  majOngletSecurite();
+  console.log('📊 Onglet « ' + SECURITY_SHEET + ' » installé : une ligne s’ajoutera en haut chaque heure. Ouvrez le tableau (ou l’application Google Sheets) pour le suivre.');
 }
 
 // En cas d'attaque ou à la fin de la saison : plus aucune inscription n'est acceptée,
