@@ -26,13 +26,15 @@
 <meta charset="utf-8">
 <!-- Security policy (CSP): the browser only runs theme.js and app.js from this site, only loads the
      fonts in fonts/, and only talks to the club's own Google Apps Script (FORM_ENDPOINT in app.js).
-     The only outside service is Cloudflare Turnstile (anti-robot check), loaded when the form is opened.
+     The only outside service is Cloudflare Turnstile (anti-robot check), loaded on the last step of the form.
      Everything else is blocked: scripts written inside the page, files from any other site (even another
      site on n8ft6.github.io), other Apps Scripts, frames, plugins, form posts.
      localhost / 127.0.0.1 are allowed only so the site can be tested on your own computer.
      If you change the site's address, the script URL or add an external service, update this line. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://n8ft6.github.io/HBC/theme.js https://n8ft6.github.io/HBC/app.js https://challenges.cloudflare.com http://localhost:* http://127.0.0.1:*; style-src https://n8ft6.github.io/HBC/fonts/fonts.css http://localhost:* http://127.0.0.1:* 'unsafe-inline'; font-src https://n8ft6.github.io/HBC/fonts/ http://localhost:* http://127.0.0.1:*; img-src data:; connect-src https://script.google.com/macros/s/AKfycbwFYkGRBzAjsfr7qgj7E4vOuFT65GWUKY8Rec8Fw_TblW3lJIdHnjqasO4Gzad4fD1fuA/exec https://script.googleusercontent.com/macros/echo; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src https://challenges.cloudflare.com; worker-src 'none'; manifest-src 'none'; media-src 'none'; upgrade-insecure-requests">
-<meta name="referrer" content="no-referrer">
+<!-- Referrer: other sites only learn the site's address (https://n8ft6.github.io), never the page or its details.
+     Cloudflare Turnstile needs at least this to recognise the site; social links send nothing (rel="noreferrer"). -->
+<meta name="referrer" content="strict-origin">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Hope Buds Club</title>
 <meta name="description" content="Hope Buds Club, club scientifique de la Faculté des Sciences de l'Université d'Alger 1 : écologie, biodiversité, économie circulaire et sensibilisation.">
@@ -1303,6 +1305,6 @@ html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 80px)}
      into the global scope. After editing app.js, change the ?v= number
      below so visitors' browsers load the new version.
      ===================================================================== -->
-<script src="app.js?v=20261113f"></script>
+<script src="app.js?v=20261113g"></script>
 
 </body></html>

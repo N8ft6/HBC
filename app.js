@@ -1044,7 +1044,8 @@
     nameBad: L('Please use letters only: spaces, hyphens and apostrophes are fine, but no numbers, dots or links.', 'Utilisez uniquement des lettres : les espaces, tirets et apostrophes sont acceptés, mais pas les chiffres, les points ni les liens.'),
     privacy: L('Your answers are stored in a private Google Sheet that only the club committee can see. We use them only to process your registration and to contact you about the club, and we never share them. When you submit, an anti-robot check by Cloudflare (Turnstile) runs. They are kept for the 2026–2027 season, then deleted. To see, correct or delete your data, write to hopebuds.club@univ-alger.dz.', 'Vos réponses sont enregistrées dans un tableau Google privé, visible uniquement par le bureau du club. Elles servent seulement à traiter votre inscription et à vous contacter au sujet du club, et ne sont jamais partagées. Au moment de l\'envoi, une vérification anti-robot de Cloudflare (Turnstile) est effectuée. Elles sont conservées le temps de la saison 2026-2027, puis supprimées. Pour consulter, corriger ou supprimer vos données, écrivez à hopebuds.club@univ-alger.dz.'),
     closed: L('Registrations are closed for the moment. Follow us on Instagram to know when they reopen.', 'Les inscriptions sont fermées pour le moment. Suivez-nous sur Instagram pour savoir quand elles rouvrent.'),
-    captcha: L("The anti-robot check didn't succeed. Your answers are kept: wait a moment, then try again. If it keeps failing, try another browser or turn off your VPN.", "La vérification anti-robot n'a pas abouti. Vos réponses sont conservées : patientez un instant puis réessayez. Si cela continue, essayez un autre navigateur ou désactivez votre VPN.")
+    captcha: L("The anti-robot check didn't succeed. Your answers are kept: tick the check box above if it is shown, then try again. If it keeps failing, try another browser or turn off your VPN.", "La vérification anti-robot n'a pas abouti. Vos réponses sont conservées : cochez la case de vérification au-dessus si elle est affichée, puis réessayez. Si cela continue, essayez un autre navigateur ou désactivez votre VPN."),
+    tsWait: L('One moment: the anti-robot check just above is finishing. If a box appears, tick it.', 'Un instant : la vérification anti-robot juste au-dessus se termine. Si une case apparaît, cochez-la.')
   };
   // Same rules as the Google script (apps-script/Code.gs): letters (Latin, accented or Arabic) separated by a space, ' or -
   const NAME_RE = /^(?=.{2,80}$)[A-Za-z\u00C0-\u024F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF][A-Za-z\u00C0-\u024F\u0300-\u036F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]*(?:[ '\u2019-][A-Za-z\u00C0-\u024F\u0300-\u036F\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+)*$/;
@@ -1182,6 +1183,7 @@
     $('#stBar').style.width = ((pos + 1) / act.length * 100) + '%';
     const last = pos === act.length - 1;
     $('#regBack').hidden = pos === 0; $('#regNext').hidden = last; $('#regSubmit').hidden = !last;
+    const tsBox = $('#tsBox'); if (tsBox) { tsBox.hidden = !last; if (last && FORM_ENDPOINT) mountTurnstile(); }
     $('#regNextLabel').textContent = tx(FT.next); $('#regBackLabel').textContent = tx(FT.back);
     if (!$('#regSubmit').disabled) $('#regSubmitLabel').textContent = tx(FT.submit);
     if (!quiet) { regDialog.scrollTop = 0; const f = $$('.rstep', regForm)[i].querySelector('input:not([type=hidden]):not([disabled]), textarea, select'); if (f && matchMedia('(min-width:700px)').matches) setTimeout(() => f.focus({ preventScroll: true }), 60); }
@@ -1206,12 +1208,13 @@
     return tokenReq;
   }
 
-  /* --- Anti-robot Cloudflare Turnstile: loaded only once the visitor opens the form, and run at submit time.
-         Usually invisible; a checkbox only appears if Cloudflare has a doubt. The Google script checks the proof.
+  /* --- Anti-robot Cloudflare Turnstile: loaded and shown only on the last step of the form, so the check runs
+         while the visitor reads it, and they can tick the box if Cloudflare asks. The Google script checks the proof.
+         A proof works once and lasts 5 minutes: Turnstile renews it by itself, and we reset it after each use.
          Empty TURNSTILE_SITEKEY = switched off. On localhost, Cloudflare's official test key is used instead. --- */
   const TURNSTILE_SITEKEY = '0x4AAAAAAF_PDRH8ytB3mUiA'; // public key (Cloudflare → Turnstile → HBC inscriptions)
   const TS_KEY = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '1x00000000000000000000AA' : TURNSTILE_SITEKEY;
-  let tsLib = null, tsWidget = null, tsWait = null;
+  let tsLib = null, tsWidget = null, tsToken = '', tsErrCode = '', tsWaiters = [];
   function loadTurnstile() {
     if (!TURNSTILE_SITEKEY) return Promise.resolve(null);
     if (!tsLib) tsLib = new Promise(resolve => {
@@ -1223,18 +1226,33 @@
     });
     return tsLib;
   }
-  async function getTurnstileProof() {
-    const ts = await loadTurnstile(); if (!ts) return '';
-    const done = v => { if (tsWait) { const w = tsWait; tsWait = null; clearTimeout(w.timer); w.resolve(v || ''); } };
-    if (tsWidget == null) {
-      tsWidget = ts.render('#tsBox', {
-        sitekey: TS_KEY, action: 'register', execution: 'execute', appearance: 'interaction-only',
-        language: lang, theme: 'auto', size: 'flexible',
-        callback: t => done(t), 'error-callback': () => { done(''); return true; }, 'timeout-callback': () => done('')
-      });
-    } else ts.reset(tsWidget);
-    return new Promise(resolve => { tsWait = { resolve, timer: setTimeout(() => done(''), 120000) }; ts.execute(tsWidget); });
+  const tsWake = () => { const w = tsWaiters; tsWaiters = []; w.forEach(f => f()); };
+  async function mountTurnstile() {
+    const ts = await loadTurnstile();
+    if (!ts || tsWidget != null) return;
+    tsWidget = ts.render('#tsBox', {
+      sitekey: TS_KEY, action: 'register', appearance: 'always', language: lang, theme: 'auto', size: 'flexible',
+      'refresh-expired': 'auto', retry: 'auto',
+      callback: t => { tsToken = t; tsErrCode = ''; tsWake(); },
+      'expired-callback': () => { tsToken = ''; },
+      'error-callback': code => { tsToken = ''; tsErrCode = String(code || ''); tsWake(); }
+    });
   }
+  // Returns a fresh proof, waiting (up to 90 s) if the check is still running or needs a tick
+  async function getTurnstileProof() {
+    if (!TURNSTILE_SITEKEY) return '';
+    await mountTurnstile();
+    if (!window.turnstile || tsWidget == null) return '';
+    if (!tsToken) {
+      setErr('submit', FT.tsWait);
+      await new Promise(res => { const timer = setTimeout(res, 90000); tsWaiters.push(() => { clearTimeout(timer); res(); }); });
+      setErr('submit', null);
+    }
+    const t = tsToken; tsToken = '';
+    return t;
+  }
+  // After a proof has been sent, ask Turnstile for a new one (each proof works only once)
+  function renewTurnstile() { if (window.turnstile && tsWidget != null) { tsToken = ''; try { window.turnstile.reset(tsWidget); } catch (e) {} } }
   const openDlg = d => { if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', ''); };
   const closeDlg = d => { if (typeof d.close === 'function') d.close(); else d.removeAttribute('open'); };
   $$('[data-register]').forEach(b => b.addEventListener('click', e => {
@@ -1384,8 +1402,9 @@
       const r = await fetch(FORM_ENDPOINT, { method: 'POST', body: JSON.stringify(d) });
       if (!r.ok) throw new Error('http ' + r.status);
       let res = {}; try { res = await r.json(); } catch (e) {}
-      if (res.ok) { getToken(true); return { mode: 'sent', mail: res.mail }; } // a token works once: fetch the next one
-      needProof = res.error !== 'wait';
+      if (res.ok) { getToken(true); renewTurnstile(); return { mode: 'sent', mail: res.mail }; } // token and proof work once: prepare the next ones
+      needProof = res.error !== 'wait'; // after 'wait' the same proof is still unused
+      if (needProof) renewTurnstile();
       if (res.error === 'wait') { await sleep((Math.min(+res.wait || 5, 20) + 1) * 1000); continue; }
       if (res.error === 'expired' || res.error === 'token') { await getToken(true); continue; }
       if (res.error === 'captcha' && ++captchaTries < 2) continue;
@@ -1419,7 +1438,8 @@
       formView.hidden = true; doneView.hidden = false; regForm.reset(); syncChoice2(); showStep(0, true); regDialog.scrollTop = 0;
     } catch (err) {
       const why = err && err.message;
-      setErr('submit', why === 'busy' ? FT.busy : why === 'closed' ? FT.closed : why === 'captcha' ? FT.captcha : FT.fail);
+      const code = why === 'captcha' && tsErrCode ? ' (code ' + tsErrCode + ')' : ''; // Cloudflare's error code helps the committee diagnose
+      setErr('submit', why === 'busy' ? FT.busy : why === 'closed' ? FT.closed : why === 'captcha' ? L(FT.captcha.en + code, FT.captcha.fr + code) : FT.fail);
     } finally { btn.disabled = false; lbl.textContent = tx(FT.submit); }
   });
   showStep(0, true);
