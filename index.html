@@ -214,7 +214,9 @@ p{margin:0}
 .about .wrap{display:grid;gap:clamp(40px,6vw,90px);grid-template-columns:minmax(0,1fr)}
 @media(min-width:960px){.about .wrap{grid-template-columns:5fr 7fr}}
 .germ{position:relative;min-width:0}
-@media(min-width:960px){.germ-sticky{position:sticky;top:110px}}
+@media(min-width:960px){.germ-sticky{position:sticky;top:110px}
+  /* laptops with short screens: the plate shrinks a little so it always fits whole while it stays in place */
+  .germ .germ-plate{max-width:min(420px,calc((100vh - 390px) / 1.05))}}
 .germ h2{margin-top:18px}
 .germ-plate{margin-top:36px;position:relative;aspect-ratio:1/1.05;max-width:420px;border-radius:24px;background:
   linear-gradient(var(--line) 1px,transparent 1px) 0 0/28px 28px,
@@ -1379,6 +1381,6 @@ p,li,dd{text-wrap:pretty}
      into the global scope. After editing app.js, change the ?v= number
      below so visitors' browsers load the new version.
      ===================================================================== -->
-<script src="app.js?v=20261115d"></script>
+<script src="app.js?v=20261116a"></script>
 
 </body></html>

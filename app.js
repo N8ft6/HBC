@@ -388,6 +388,7 @@
   const gLeafL = $('#gLeafL'), gLeafR = $('#gLeafR'), petals = $$('.g-petal');
   let lastStage = -1; onLang(() => { lastStage = -1; });
   const germ = $('#graine'), germStage = $('#germStage'), germPct = $('#germPct');
+  const germPlate = $('#germPlate'), germWide = matchMedia('(min-width:960px)'); // same breakpoint as .germ-sticky in the CSS
   function drawGerm(p) {
     gRoot.style.strokeDashoffset = Ls[0] * (1 - seg(p, 0, .3));
     gRoot2.style.strokeDashoffset = Ls[1] * (1 - seg(p, .15, .35));
@@ -969,9 +970,18 @@
       if (v.leaf) v.leaf.classList.toggle('on', P >= v.t);
       else { const o = seg(P, .96, 1); v.petal.style.transform = `rotate(${v.r * o}deg) scale(${.4 + .6 * o},${.6 + .4 * o})`; }
     });
-    // germination: progress while section passes
-    const gr = germ.getBoundingClientRect();
-    drawGerm(clamp((innerHeight * .75 - gr.top) / (gr.height * .8)));
+    // germination. Large screens: the plate stays put (sticky) beside the text, so the seed grows over the whole section.
+    // Phones and tablets: the plate scrolls with the text, so the seed grows while the WHOLE plate is on screen:
+    // it starts once the plate is fully visible at the bottom and is fully grown before the plate reaches the header.
+    if (germWide.matches) {
+      const gr = germ.getBoundingClientRect();
+      drawGerm(clamp((innerHeight * .75 - gr.top) / (gr.height * .8)));
+    } else {
+      const pr = germPlate.getBoundingClientRect();
+      const start = Math.max(innerHeight - pr.height, innerHeight * .5);              // plate fully visible (or half the screen on short screens)
+      const end = Math.min(Math.max(90, (innerHeight - pr.height) * .25), start - 200); // plate near the top, still below the header
+      drawGerm(clamp((start - pr.top) / (start - end)));
+    }
     // timeline stem + nodes
     const tr = tl.getBoundingClientRect(), mid = innerHeight * .62;
     tlFill.parentElement.style.setProperty('--p', clamp((mid - tr.top) / tr.height));
