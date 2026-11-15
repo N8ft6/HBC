@@ -815,6 +815,47 @@ html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 80px)}
 .rv{transition:opacity 1s var(--ease),transform 1.1s var(--ease)}
 .rv.pre{transform:translateY(34px)}
 
+/* ---------- PHONES: comfort, readability, one-hand use ---------- */
+a,button,summary,label{-webkit-tap-highlight-color:transparent}
+.theme-btn,.burger{width:44px;height:44px}
+/* the club's address opens the mail app with one tap */
+.mail-link{color:inherit;text-decoration:none;padding-block:10px}
+.mail-link:hover code,.mail-link:focus-visible code{text-decoration:underline;text-underline-offset:3px}
+/* very small phones (320-380 px): the header keeps its two buttons inside the screen */
+@media(max-width:380px){.nav .wrap{gap:10px}.brand{gap:8px}.brand img{width:38px;height:38px}.brand b{font-size:19px}.nav-right{gap:8px}}
+/* Eco Lab: on phones each month folds into one tappable line (see "fold" in app.js) */
+@media(max-width:899px){
+  .season-mob{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 10px;width:100%;margin:14px 0 0;padding:10px 0;border:0;background:none;color:var(--fg);font:italic 30px/1.15 var(--f-display);text-align:left;cursor:pointer}
+  .season-mob span{margin-left:0}
+  .season-mob .now-b{margin-left:0}
+  .season-mob .sm-n{margin-left:auto;align-self:center;display:inline-flex;align-items:center;gap:10px;font:500 12px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .season-mob .sm-n::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(2px) rotate(-135deg);transition:transform .3s var(--ease)}
+  .season.fold .sm-n::after{transform:translateY(-2px) rotate(45deg)}
+  .season-mob:focus-visible{outline:2px solid var(--blue);outline-offset:4px;border-radius:8px}
+  .season.fold .mcard,.season.fold .empty{display:none}
+  .season.fold .events{padding-block:2px 8px}
+}
+@media(max-width:700px){
+  .link-arrow{padding:12px 0}
+  .copy{padding:12px 18px}
+  /* small labels never go under 12px on a phone */
+  .act .tag,.fx-card .tag,.act-d,.now-b,.now-k,.drop-tag,.specimen .pin{font-size:12px}
+  .ghint,.gcount{font-size:11.5px}
+  /* the back-to-top button steps aside while scrolling down, so it never covers a button */
+  .totop.hide{opacity:0;transform:translateY(14px);pointer-events:none}
+}
+/* Registration form: a full-screen sheet on phones (upright or sideways), its buttons always within thumb reach */
+@media(max-width:560px),(max-height:560px){
+  dialog.reg{width:100%;max-width:100%;height:100dvh;max-height:100dvh;margin:0;inset:0;border-radius:0;scroll-padding-bottom:120px}
+  dialog.reg[open]{animation:sheet .45s var(--ease)}
+  .reg-in{padding:calc(env(safe-area-inset-top,0px) + 18px) 18px 0;gap:20px}
+  .reg-actions{position:sticky;bottom:0;z-index:3;margin:0 -18px;padding:12px 18px calc(env(safe-area-inset-bottom,0px) + 12px);background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -14px 24px -20px rgba(0,0,0,.4)}
+  .reg-actions .bloom,.reg-actions .ghost{min-height:48px}
+}
+/* touch screens: text fields at 16px at least, otherwise iPhones and iPads zoom in when the field is tapped */
+@media(pointer:coarse){.field .chip .other-in{font-size:16px}}
+@keyframes sheet{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
+
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important;scroll-behavior:auto!important}
   .ticker-track{animation:none!important}
@@ -1282,7 +1323,7 @@ html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 80px)}
       </div>
       <div class="f-col">
         <h5>Contact</h5>
-        <div class="mail"><code id="mailAddr">hopebuds.club@univ-alger.dz</code><button class="copy" id="copyBtn" type="button" data-i18n="copy">Copy</button></div>
+        <div class="mail"><a class="mail-link" href="mailto:hopebuds.club@univ-alger.dz"><code id="mailAddr">hopebuds.club@univ-alger.dz</code></a><button class="copy" id="copyBtn" type="button" data-i18n="copy">Copy</button></div>
         <div class="socials">
           <a href="https://www.facebook.com/HopeBudsClub" target="_blank" rel="noopener noreferrer" aria-label="Hope Buds Club on Facebook"><svg viewBox="0 0 24 24"><path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.2H7.8v3h2.6V21h3.1z"/></svg></a>
           <a href="https://www.instagram.com/hopebudsclub/" target="_blank" rel="noopener noreferrer" aria-label="Hope Buds Club on Instagram"><svg viewBox="0 0 24 24"><path d="M12 7.3a4.7 4.7 0 1 0 0 9.4 4.7 4.7 0 0 0 0-9.4zm0 7.7a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm4.9-8.9a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2zM21.9 8c-.1-1.6-.4-3-1.6-4.2C19.1 2.6 17.6 2.2 16 2.1c-1.6-.1-6.4-.1-8 0-1.6.1-3 .4-4.2 1.6C2.6 4.9 2.2 6.4 2.1 8c-.1 1.6-.1 6.4 0 8 .1 1.6.4 3 1.6 4.2 1.2 1.2 2.6 1.5 4.2 1.6 1.6.1 6.4.1 8 0 1.6-.1 3-.4 4.2-1.6 1.2-1.2 1.5-2.6 1.6-4.2.1-1.6.1-6.4 0-8zm-2.1 9.8a3.3 3.3 0 0 1-1.8 1.8c-1.3.5-4.3.4-5.7.4s-4.4.1-5.7-.4a3.3 3.3 0 0 1-1.8-1.8c-.5-1.3-.4-4.3-.4-5.7s-.1-4.4.4-5.7A3.3 3.3 0 0 1 6.3 4.6c1.3-.5 4.3-.4 5.7-.4s4.4-.1 5.7.4a3.3 3.3 0 0 1 1.8 1.8c.5 1.3.4 4.3.4 5.7s.1 4.4-.4 5.7z"/></svg></a>
@@ -1305,6 +1346,6 @@ html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 80px)}
      into the global scope. After editing app.js, change the ?v= number
      below so visitors' browsers load the new version.
      ===================================================================== -->
-<script src="app.js?v=20261113h"></script>
+<script src="app.js?v=20261115b"></script>
 
 </body></html>

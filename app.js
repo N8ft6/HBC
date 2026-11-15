@@ -298,14 +298,31 @@
 
   const tl = $('#timeline');
   let curF = 'all'; const openedSeasons = new Set();
+  // On phones each month folds into one line (name + number of activities): only the current month is open
+  // at first, the others open with a tap. With a filter on, every month that has a match opens by itself.
+  const unfolded = new Set([String(nowMonth > -1 ? nowMonth : (nowRef ? nowRef[0] : PLAN.length - 1))]);
+  const countWord = n => lang === 'fr' ? `${n} activité${n > 1 ? 's' : ''}` : `${n} activit${n > 1 ? 'ies' : 'y'}`;
+  function setFold(row, fold) {
+    row.classList.toggle('fold', fold);
+    const b = $('.season-mob', row); if (b) b.setAttribute('aria-expanded', fold ? 'false' : 'true');
+  }
+  tl.addEventListener('click', e => {
+    const b = e.target.closest('.season-mob'); if (!b) return;
+    const row = b.closest('.season'), fold = !row.classList.contains('fold');
+    setFold(row, fold);
+    if (curF === 'all') { if (fold) unfolded.delete(row.dataset.i); else unfolded.add(row.dataset.i); }
+    requestAnimationFrame(onScroll);
+  });
   function applyFilter(f) {
     curF = f;
-    $$('.chip').forEach(c => c.setAttribute('aria-pressed', c.dataset.f === f ? 'true' : 'false'));
+    $$('.chip[data-f]').forEach(c => c.setAttribute('aria-pressed', c.dataset.f === f ? 'true' : 'false'));
     $$('.season', tl).forEach(row => {
       let shown = 0;
       $$('.act', row).forEach(e => { const on = f === 'all' || e.dataset.t === f; e.hidden = !on; if (on) shown++; });
       $('.mcard', row).hidden = shown === 0;
       $('.empty', row).hidden = shown > 0;
+      $('.sm-n', row).textContent = countWord(shown);
+      setFold(row, f === 'all' ? !unfolded.has(row.dataset.i) : shown === 0);
     });
     let fs = 0; $$('#flexGrid .fx-card').forEach(e => { const on = f === 'all' || e.dataset.t === f; e.hidden = !on; if (on) fs++; });
     $('#flexBlock').hidden = fs === 0;
@@ -330,15 +347,15 @@
         <div class="season-name"><h3>${monthName(mo.y, mo.m)}</h3><span>${mo.y}</span>${isNow ? '<br>' + badge : ''}</div>
         <div class="node"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="ring" cx="20" cy="20" r="18"/><g>${petals}</g><circle class="nc" cx="20" cy="20" r="5"/></svg></div>
         <div class="events">
-          <div class="season-mob">${monthName(mo.y, mo.m)}<span>${mo.y}</span>${isNow ? badge : ''}</div>
-          <article class="ev mcard"><ul class="acts">${items}</ul></article>
+          <button type="button" class="season-mob" aria-controls="ev-${si}" aria-expanded="true">${monthName(mo.y, mo.m)}<span>${mo.y}</span>${isNow ? badge : ''}<b class="sm-n"></b></button>
+          <article class="ev mcard" id="ev-${si}"><ul class="acts">${items}</ul></article>
           <p class="empty" hidden>${T('empty')}</p>
         </div>`;
       tl.appendChild(row);
     });
     $('#flexGrid').innerHTML = FLEX.map(it => `<div class="fx-card" data-t="${it[1]}"><span class="act-ic" aria-hidden="true">${it[0]}</span><span class="act-t">${escH(it[lang === 'fr' ? 3 : 2])}</span><span class="tag ${it[1]}">${TY[it[1]]}</span></div>`).join('');
     const all = [...$$('.act', tl), ...$$('#flexGrid .fx-card')];
-    $$('.chip').forEach(ch => { const f = ch.dataset.f; ch.querySelector('.n').textContent = f === 'all' ? all.length : all.filter(e => e.dataset.t === f).length; });
+    $$('.chip[data-f]').forEach(ch => { const f = ch.dataset.f; ch.querySelector('.n').textContent = f === 'all' ? all.length : all.filter(e => e.dataset.t === f).length; });
     applyFilter(curF);
     // "Today / this month" pill in the hero
     const pill = $('#nowPill');
@@ -352,11 +369,12 @@
   }
   renderTimeline();
   onLang(() => { renderTimeline(); requestAnimationFrame(onScroll); });
-  $$('.chip').forEach(ch => ch.addEventListener('click', () => { applyFilter(ch.dataset.f); requestAnimationFrame(onScroll); }));
+  $$('.chip[data-f]').forEach(ch => ch.addEventListener('click', () => { applyFilter(ch.dataset.f); requestAnimationFrame(onScroll); }));
   $('#nowPill').addEventListener('click', e => {
     if (!nowRef) return;
     const el = $('#act-' + nowRef[0] + '-' + nowRef[1]); if (!el) return;
     if (el.hidden) applyFilter('all');
+    const row = el.closest('.season'); if (row && row.classList.contains('fold')) { setFold(row, false); unfolded.add(row.dataset.i); }
     e.preventDefault();
     el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
     el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
@@ -932,6 +950,7 @@
     const y = scrollY, H = document.documentElement.scrollHeight - innerHeight;
     nav.classList.toggle('scrolled', y > 10);
     toTop.classList.toggle('show', y > innerHeight * 1.1);
+    toTop.classList.toggle('hide', y - lastY > 2 && y < H - 4); // on phones it steps aside while scrolling down (CSS)
     spy();
     const P = H > 0 ? clamp(y / H) : 0;
     sprogUpdate(P);
@@ -1101,6 +1120,10 @@
         w.append(box);
       } else {
         const i = el('input'); i.type = q.type; i.name = q.k; i.id = id; if (q.max) i.maxLength = q.max; if (q.ac) i.autocomplete = q.ac;
+        // phone keyboards: the right keys, capitals where they belong, no autocorrect on addresses and usernames
+        i.enterKeyHint = 'next';
+        if (q.k === 'name') i.autocapitalize = 'words';
+        if (q.type === 'email' || q.k === 'telegram') { i.autocapitalize = 'none'; i.spellcheck = false; i.setAttribute('autocorrect', 'off'); }
         if (q.ph) { i._ph = q.ph; i.placeholder = tx(q.ph); } w.append(i);
       }
     }
