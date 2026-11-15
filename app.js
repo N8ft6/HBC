@@ -298,8 +298,9 @@
 
   const tl = $('#timeline');
   let curF = 'all'; const openedSeasons = new Set();
-  // On phones each month folds into one line (name + number of activities): only the current month is open
-  // at first, the others open with a tap. With a filter on, every month that has a match opens by itself.
+  // Each month folds into one line (name + number of activities): only the current month is open at first,
+  // the others open with a tap or a click (on desktop the month name works too).
+  // With a filter on, every month that has a match opens by itself.
   const unfolded = new Set([String(nowMonth > -1 ? nowMonth : (nowRef ? nowRef[0] : PLAN.length - 1))]);
   const countWord = n => lang === 'fr' ? `${n} activité${n > 1 ? 's' : ''}` : `${n} activit${n > 1 ? 'ies' : 'y'}`;
   function setFold(row, fold) {
@@ -307,7 +308,7 @@
     const b = $('.season-mob', row); if (b) b.setAttribute('aria-expanded', fold ? 'false' : 'true');
   }
   tl.addEventListener('click', e => {
-    const b = e.target.closest('.season-mob'); if (!b) return;
+    const b = e.target.closest('.season-mob, .season-name'); if (!b) return;
     const row = b.closest('.season'), fold = !row.classList.contains('fold');
     setFold(row, fold);
     if (curF === 'all') { if (fold) unfolded.delete(row.dataset.i); else unfolded.add(row.dataset.i); }
@@ -347,7 +348,7 @@
         <div class="season-name"><h3>${monthName(mo.y, mo.m)}</h3><span>${mo.y}</span>${isNow ? '<br>' + badge : ''}</div>
         <div class="node"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="ring" cx="20" cy="20" r="18"/><g>${petals}</g><circle class="nc" cx="20" cy="20" r="5"/></svg></div>
         <div class="events">
-          <button type="button" class="season-mob" aria-controls="ev-${si}" aria-expanded="true">${monthName(mo.y, mo.m)}<span>${mo.y}</span>${isNow ? badge : ''}<b class="sm-n"></b></button>
+          <button type="button" class="season-mob" aria-controls="ev-${si}" aria-expanded="true"><span class="sm-label">${monthName(mo.y, mo.m)}<span>${mo.y}</span>${isNow ? badge : ''}</span><b class="sm-n"></b></button>
           <article class="ev mcard" id="ev-${si}"><ul class="acts">${items}</ul></article>
           <p class="empty" hidden>${T('empty')}</p>
         </div>`;
