@@ -919,7 +919,7 @@
   })();
 
   /* ---------- Main scroll loop ---------- */
-  const nav = $('#nav'), tlFill = $('#tlFill'), toTop = $('#toTop');
+  const nav = $('#nav'), tlFill = $('#tlFill'), toTop = $('#toTop'), fabReg = $('#fabReg'), heroSec = $('#top'), joinSec = $('#rejoindre');
   /* ---------- Active section in the nav ---------- */
   const spyLinks = $$('.nav ul a, .mnav nav a');
   const spyIds = ['graine', 'lab', 'cellules', 'jardin', 'faq', 'contact'];
@@ -951,6 +951,12 @@
     nav.classList.toggle('scrolled', y > 10);
     toTop.classList.toggle('show', y > innerHeight * 1.1);
     toTop.classList.toggle('hide', y - lastY > 2 && y < H - 4); // on phones it steps aside while scrolling down (CSS)
+    // phones: the floating "Register" button shows when scrolling up, past the hero, away from the Join section
+    if (fabReg) {
+      const jr = joinSec.getBoundingClientRect(), inJoin = jr.top < innerHeight && jr.bottom > 0, d = y - lastY;
+      const zone = heroSec.getBoundingClientRect().bottom < 0 && !inJoin && y < H - 200;
+      if (!zone || d > 2) fabReg.classList.remove('show'); else if (d < -2) fabReg.classList.add('show');
+    }
     spy();
     const P = H > 0 ? clamp(y / H) : 0;
     sprogUpdate(P);
