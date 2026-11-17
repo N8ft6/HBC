@@ -79,8 +79,9 @@
     'f.addr': "Faculté des Sciences<br>Université d'Alger 1 — Benyoucef Benkhedda<br><span>2, rue Didouche Mourad, Alger-Centre<br>Algérie</span>",
     'copy': 'Copier', 'f.tag': 'Là où la curiosité éclot', 'f.rights': 'Tous droits réservés',
     'nav.garden': 'Jardin',
-    'g.eyebrow': 'Interactif · Jardin vivant', 'g.h2': 'Faites pousser <em>le jardin du club</em>',
-    'g.p': "Touchez le sol pour semer une graine, puis arrosez le jardin et regardez les papillons arriver.",
+    'g.eyebrow': 'Interactif · Jardin vivant', 'g.h2': 'Un jardin <em>d’Algérie</em>',
+    'g.p': "Choisissez un paysage, touchez le sol pour semer ses plantes, arrosez-le et voyez qui vient vous rendre visite.",
+    'g.biomesA': 'Paysages d’Algérie', 'g.b1': 'Littoral', 'g.b2': 'Atlas', 'g.b3': 'Hauts Plateaux', 'g.b4': 'Sahara',
     'g.blow': 'survolez ou touchez pour souffler', 'g.blowA': 'Souffler sur le pissenlit', 'g.stageA': 'Jardin interactif. Touchez le sol pour planter une graine.',
     'g.hint': 'Touchez le sol pour planter', 'g.plantBtn': 'Planter une graine', 'g.water': 'Arroser le jardin', 'g.clear': 'Recommencer', 'g.note': 'Votre jardin est conservé sur cet appareil.'
   };
@@ -641,7 +642,9 @@
     const stageEl = $('#gstage'), svg = $('#gsvg'); if (!stageEl || !svg) return;
     const VH = 440, GY = 372; let VW = 1200;
     const Lp = $('#gPlants'), Lb = $('#gBack'), Lf = $('#gFront'), Lr = $('#gRain'), Lfly = $('#gFly'), cloud = $('#gCloud');
-    const hint = $('#ghint'), countEl = $('#gcount b'), countWord = $('#gcount span'), KEY = 'hbc-garden-v1', MAX = 26;
+    const hint = $('#ghint'), countEl = $('#gcount b'), countWord = $('#gcount span'), MAX = 26;
+    const gInfo = $('#gInfo');
+    const tr = (en, fr) => lang === 'fr' ? fr : en; // local: the shared L() helper is defined later in this file
     const f1 = n => n.toFixed(1);
     const mulberry = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
     const groundY = x => GY + 24 * (x / VW) * (1 - x / VW);
@@ -754,32 +757,206 @@
           else { const n = 1 + (r() * 3 | 0); for (let k = 0; k < n; k++) { const off = (k - (n - 1) / 2) * 0.35; disc(c, tx + Math.cos(rad + off) * 2, ty - 2, 4.2, r() < .5 ? '#f2b705' : '#c2334d', d + .7 + k * .1); } c.heads.push({ x: tx, y: ty }); }
         };
         pad(0, 4, (r() - .5) * 16, 40 + r() * 10, 2, 0);
+      } },
+      oleander: { name: 'Nerium oleander', common: 'oleander', fr: 'laurier-rose', build(c) {
+        const r = c.r, n = 3 + (r() * 3 | 0);
+        for (let i = 0; i < n; i++) {
+          const sp = (i / (n - 1 || 1) - .5) * 2, h = 90 + r() * 50, a = (-90 + sp * 28) * Math.PI / 180, ex = Math.cos(a) * h, ey = Math.sin(a) * h;
+          const P = [[0, 0], [ex * .25, ey * .45], [ex * .8, ey * .8], [ex, ey]], d0 = i * .1;
+          stem(c, P, 1.8, '#5b7f3a', d0, 1);
+          for (let t = .25; t < .95; t += .18) { const p = bz(P, t); leaf(c, p.x, p.y, p.a - 35, 26, 3.2, '#4f7a36', d0 + .3 + t * .6, false); leaf(c, p.x, p.y, p.a + 35, 24, 3, '#5d8a40', d0 + .35 + t * .6, false); }
+          const tp = bz(P, 1), col = pick(r, ['#f06aa0', '#e85590', '#f7a1c4', '#fff4f8']);
+          for (let f = 0; f < 3; f++) { const fx = tp.x + (f - 1) * 9 + (r() - .5) * 4, fy = tp.y - (f === 1 ? 6 : 0); for (let k = 0; k < 5; k++) petal(c, fx, fy, k * 72 + r() * 10, 9, 5, col, 1.3 + d0 + f * .08 + k * .02, 'stroke:rgba(120,20,60,.15);stroke-width:.6', true); disc(c, fx, fy, 1.8, '#f9e27a', 1.6 + d0); }
+          c.heads.push({ x: tp.x, y: tp.y - 6 });
+        }
+      } },
+      cedar: { name: 'Cedrus atlantica', common: 'Atlas cedar', fr: 'cèdre de l’Atlas', build(c) {
+        const r = c.r, h = 150 + r() * 50;
+        const P = [[0, 0], [(r() - .5) * 6, -h * .4], [(r() - .5) * 6, -h * .8], [0, -h]];
+        stem(c, P, 7, '#6b4f33', 0, 1);
+        const tiers = 5;
+        for (let i = 0; i < tiers; i++) {
+          const p = bz(P, Math.min(.3 + i * .16, .98)), w = (1 - i / tiers) * 80 + 22, d0 = .6 + i * .2;
+          stem(c, [[p.x, p.y], [p.x - w * .3, p.y - 2], [p.x - w * .7, p.y + 2], [p.x - w, p.y + 4]], 2, '#6b4f33', d0, .6);
+          stem(c, [[p.x, p.y], [p.x + w * .3, p.y - 2], [p.x + w * .7, p.y + 2], [p.x + w, p.y + 4]], 2, '#6b4f33', d0, .6);
+          for (let k = -3; k <= 3; k++) mk('ellipse', { class: 'gp-pop', cx: f1(p.x + k * w / 3.2), cy: f1(p.y - 3 - Math.abs(k) * .5), rx: f1(w / 3 + 6), ry: f1(7 + r() * 3), style: `fill:${i % 2 ? '#3f6f5c' : '#4f8070'};--d:${(d0 + .3 + Math.abs(k) * .05).toFixed(2)}s` }, c.g);
+        }
+        const tp = bz(P, 1); mk('ellipse', { class: 'gp-pop', cx: f1(tp.x), cy: f1(tp.y), rx: 10, ry: 12, style: 'fill:#4f8070;--d:1.9s' }, c.g);
+        c.heads.push({ x: tp.x, y: tp.y - 10 });
+      } },
+      alfa: { name: 'Stipa tenacissima', common: 'alfa grass', fr: 'alfa', build(c) {
+        const r = c.r, n = 16 + (r() * 8 | 0);
+        for (let i = 0; i < n; i++) {
+          const sp = (i / (n - 1) - .5) * 2, h = 70 + r() * 45 - Math.abs(sp) * 20, a = (-90 + sp * 55) * Math.PI / 180, ex = Math.cos(a) * h, ey = Math.sin(a) * h;
+          stem(c, [[0, 0], [ex * .2, ey * .5], [ex * .8 + sp * 10, ey * .85], [ex + sp * 18, ey + Math.abs(sp) * 12]], 1.3, i % 2 ? '#8fa35a' : '#a8b46a', Math.abs(sp) * .2, 1);
+        }
+        for (let k = 0; k < 3; k++) {
+          const a = (-90 + (k - 1) * 14 + (r() - .5) * 6) * Math.PI / 180, h = 120 + r() * 30, ex = Math.cos(a) * h, ey = Math.sin(a) * h;
+          const P = [[0, 0], [ex * .3, ey * .4], [ex * .7, ey * .75], [ex, ey]], d0 = .6 + k * .15;
+          stem(c, P, 1, '#b7a46a', d0, 1);
+          for (let t = .6, s = 1; t < 1; t += .06, s = -s) { const p = bz(P, t); leaf(c, p.x, p.y, p.a + s * 28, 9, 1.6, '#e6d8a6', d0 + .6 + t * .4, false); }
+          c.heads.push(bz(P, 1));
+        }
+      } },
+      palm: { name: 'Phoenix dactylifera', common: 'date palm', fr: 'palmier dattier', build(c) {
+        const r = c.r, h = 170 + r() * 60, lean = (r() - .5) * 40;
+        const P = [[0, 0], [lean * .2, -h * .35], [lean * .8, -h * .7], [lean, -h]];
+        stem(c, P, 9, '#8a6a43', 0, 1.1);
+        for (let t = .08; t < .98; t += .07) { const p = bz(P, t); mk('path', { class: 'gp-stem', pathLength: 1, d: `M${f1(p.x - 5)} ${f1(p.y)} L${f1(p.x + 5)} ${f1(p.y - 2)}`, style: `stroke:#6b5032;stroke-width:1.6;--d:${(t * 1.1).toFixed(2)}s;--t:.3s` }, c.g); }
+        const top = bz(P, 1), n = 9;
+        for (let i = 0; i < n; i++) {
+          const a = (-180 + i * 180 / (n - 1) + (r() - .5) * 10) * Math.PI / 180, L = 70 + r() * 25;
+          const F = [[top.x, top.y], [top.x + Math.cos(a) * L * .4, top.y + Math.sin(a) * L * .5 - 12], [top.x + Math.cos(a) * L * .8, top.y + Math.sin(a) * L * .4 + L * .1], [top.x + Math.cos(a) * L, top.y + Math.sin(a) * L * .55 + L * .35]];
+          const d0 = 1.1 + i * .05; stem(c, F, 2, '#4f8a2c', d0, .9);
+          for (let t = .15; t < .98; t += .09) { const p = bz(F, t), s = 14 * (1 - t * .6); leaf(c, p.x, p.y, p.a - 60, s, 1.8, '#5f9b3a', d0 + .3 + t * .5, false); leaf(c, p.x, p.y, p.a + 60, s, 1.8, '#4c8a2a', d0 + .35 + t * .5, false); }
+        }
+        for (let k = 0; k < 2; k++) for (let j = 0; j < 6; j++) disc(c, top.x + (k ? 8 : -8) + (r() - .5) * 8, top.y + 8 + j * 3.2, 2.6, j % 2 ? '#c26a1b' : '#a3501a', 1.9 + j * .04);
+        c.heads.push({ x: top.x, y: top.y - 6 });
+      } },
+      tarout: { name: 'Cupressus dupreziana', common: 'Saharan cypress', fr: 'cyprès du Tassili', build(c) {
+        const r = c.r, h = 150 + r() * 50;
+        stem(c, [[0, 0], [0, -10], [0, -20], [0, -28]], 6, '#6b4f33', 0, .5);
+        const layers = 8;
+        for (let i = 0; i < layers; i++) { const t = i / layers; mk('ellipse', { class: 'gp-pop', cx: f1((r() - .5) * 4), cy: f1(-24 - t * h), rx: f1((1 - t) * 30 + 8), ry: f1(h / layers * .9), style: `fill:${i % 2 ? '#2f5d3e' : '#3a6b48'};--d:${(.4 + i * .12).toFixed(2)}s` }, c.g); }
+        for (let k = 0; k < 4; k++) disc(c, (r() - .5) * 24, -40 - r() * h * .6, 2.4, '#8a6a43', 1.5 + k * .1);
+        c.heads.push({ x: 0, y: -24 - h });
+      } },
+      colocynth: { name: 'Citrullus colocynthis', common: 'colocynth', fr: 'coloquinte', build(c) {
+        const r = c.r;
+        [-1, 1].forEach((s, j) => {
+          const L = 60 + r() * 40, P = [[0, 0], [s * L * .3, -14], [s * L * .7, -6], [s * L, -2]];
+          stem(c, P, 1.6, '#6f8f3a', j * .15, 1.1);
+          for (let t = .2; t < 1; t += .2) { const p = bz(P, t); leaf(c, p.x, p.y, -90 + (r() - .5) * 40, 14, 7, '#7a9a45', .4 + t * .6 + j * .1, false); }
+          const fp = bz(P, .75), fg = mk('g', { class: 'gp-pop', style: `--d:${(1.2 + j * .2).toFixed(2)}s` }, c.g);
+          mk('circle', { cx: f1(fp.x), cy: f1(fp.y - 8), r: 9, style: 'fill:#d9c24a' }, fg);
+          mk('path', { d: `M${f1(fp.x - 6)} ${f1(fp.y - 14)} Q ${f1(fp.x)} ${f1(fp.y - 8)} ${f1(fp.x - 6)} ${f1(fp.y - 2)} M${f1(fp.x + 2)} ${f1(fp.y - 16)} Q ${f1(fp.x + 7)} ${f1(fp.y - 8)} ${f1(fp.x + 2)} ${f1(fp.y)}`, style: 'stroke:#8aa04a;stroke-width:1.4;fill:none' }, fg);
+          c.heads.push({ x: fp.x, y: fp.y - 16 });
+        });
       } }
     };
     const TYPES = Object.keys(SPECIES);
 
+    /* Algerian names and one short fact per plant [English, French] */
+    const INFO = {
+      daisy: { ar: 'أقحوان', fact: ['Carpets the roadsides with yellow in April.', 'Tapisse de jaune les bords de route en avril.'] },
+      poppy: { ar: 'شقائق النعمان', fact: ['Turns the fields of the Tell red every spring.', 'Rougit les champs du Tell à chaque printemps.'] },
+      tulip: { ar: 'توليب بري', fact: ['Blooms in the mountains, from Kabylia to the Aurès.', 'Fleurit en montagne, de la Kabylie aux Aurès.'] },
+      lavender: { ar: 'خزامى', fact: ['Scents the coastal scrubland and hills.', 'Parfume le maquis du littoral et des collines.'] },
+      fern: { ar: 'سرخس', fact: ['Grows in the shade of cork oak forests.', 'Pousse à l’ombre des forêts de chênes-lièges.'] },
+      olive: { ar: 'زيتون', fact: ['Grown in Kabylia for thousands of years.', 'Cultivé en Kabylie depuis des millénaires.'] },
+      opuntia: { ar: 'كرموس الهندي', fact: ['Its fruit, “el hendi”, is a summer treat.', 'Ses figues, « el hendi », régalent tout l’été.'] },
+      oleander: { ar: 'دفلة', fact: ['Blooms along the wadis all summer.', 'Fleurit le long des oueds tout l’été.'] },
+      cedar: { ar: 'أرز الأطلس', fact: ['Giant of Chréa and the Djurdjura; it lives for centuries.', 'Géant de Chréa et du Djurdjura, il vit plusieurs siècles.'] },
+      alfa: { ar: 'حلفاء', fact: ['Covers the High Plateaus; woven into baskets and paper.', 'Couvre les Hauts Plateaux ; on en fait paniers et papier.'] },
+      palm: { ar: 'نخلة', fact: ['Queen of the oases: Deglet Nour, the date of Biskra.', 'Reine des oasis : Deglet Nour, la datte de Biskra.'] },
+      tarout: { ar: 'تاروت', fact: ['Fewer than 250 of these trees survive, all in the Tassili.', 'Moins de 250 arbres survivent, tous dans le Tassili.'] },
+      colocynth: { ar: 'حنظل', fact: ['A wild Saharan gourd with very bitter fruit.', 'Une courge sauvage du Sahara, aux fruits très amers.'] }
+    };
+    /* four landscapes of Algeria: their plants, their animal, their own saved garden */
+    const BIOMES = {
+      littoral: { key: 'hbc-garden-v1', pool: ['poppy', 'daisy', 'olive', 'opuntia', 'oleander', 'lavender'], bird: 'goldfinch', flies: [['#0b5ba8', '#a6d4ff'], ['#f2a03d', '#fff1b8']],
+        cap: ['Coast · the Mediterranean, from El Kala to Ghazaouet', 'Littoral · la Méditerranée, d’El Kala à Ghazaouet'] },
+      atlas: { key: 'hbc-garden-atlas', pool: ['cedar', 'tulip', 'fern', 'lavender', 'poppy'], bird: 'nuthatch', flies: [['#0b5ba8', '#a6d4ff']],
+        cap: ['Atlas · the cedars and snows of the Djurdjura', 'Atlas · les cèdres et la neige du Djurdjura'] },
+      plateaux: { key: 'hbc-garden-plateaux', pool: ['alfa', 'poppy', 'daisy', 'opuntia', 'lavender'], bird: 'hoopoe', flies: [['#f2a03d', '#fff1b8'], ['#c8321f', '#ffe1a6']],
+        cap: ['High Plateaus · alfa steppe as far as the eye can see', 'Hauts Plateaux · la steppe d’alfa à perte de vue'] },
+      sahara: { key: 'hbc-garden-sahara', pool: ['palm', 'tarout', 'colocynth'], bird: '', fennec: true, flies: [['#e8873a', '#2b1d12']],
+        cap: ['Sahara · dunes, oases and the rocks of the Tassili', 'Sahara · dunes, oasis et rochers du Tassili'] }
+    };
+    const FAUNA = {
+      goldfinch: { name: 'Carduelis carduelis', en: 'goldfinch', fr: 'chardonneret', ar: 'المقنين', fact: ['Algeria’s beloved songbird, “el maknine”.', 'L’oiseau chanteur chéri des Algériens, « el maknine ».'],
+        body: '#c9a87c', belly: '#f1e3cc', head: '#f4f1ea', wing: '#1c1c1c', bar: '#f2c200', tail: '#1c1c1c', beak: '#e7d6c0' },
+      nuthatch: { name: 'Sitta ledanti', en: 'Algerian nuthatch', fr: 'sittelle kabyle', ar: '', fact: ['Found nowhere else on Earth than in Algeria’s mountains.', 'Ne vit nulle part ailleurs que dans les montagnes d’Algérie.'],
+        body: '#7d95a8', belly: '#e9bf94', head: '#7d95a8', wing: '#6b8396', bar: '', tail: '#5d7385', beak: '#3a3a3a' },
+      hoopoe: { name: 'Upupa epops', en: 'hoopoe', fr: 'huppe fasciée', ar: 'الهدهد', fact: ['Its crown of feathers opens like a fan.', 'Sa huppe s’ouvre comme un éventail.'],
+        body: '#d9925e', belly: '#e9b38a', head: '#d9925e', wing: '#1f1f1f', bar: '#f4f1ea', tail: '#1f1f1f', beak: '#3a3a3a' },
+      fennec: { name: 'Vulpes zerda', en: 'fennec fox', fr: 'fennec', ar: 'فنك', fact: ['Algeria’s national animal; its huge ears keep it cool.', 'Animal emblème de l’Algérie : ses grandes oreilles le rafraîchissent.'] }
+    };
+    let biome = 'littoral';
+    try { const b = localStorage.getItem('hbc-garden-biome'); if (b && Object.prototype.hasOwnProperty.call(BIOMES, b)) biome = b; } catch (e) {}
+    stageEl.dataset.biome = biome;
+    /* the line under the garden: the landscape, the last plant sown or the animal you tapped */
+    let infoSrc = { k: 'biome' };
+    function showInfo(src) {
+      if (src) infoSrc = src; if (!gInfo) return;
+      gInfo.textContent = '';
+      const b = (t, cls) => { const e = document.createElement(cls === 'ar' ? 'span' : 'b'); if (cls) e.className = cls; e.textContent = t; return e; };
+      if (infoSrc.k === 'biome') { gInfo.append(tr(...BIOMES[biome].cap)); return; }
+      const d = infoSrc.k === 'plant' ? { name: tr(SPECIES[infoSrc.t].common, SPECIES[infoSrc.t].fr), ...INFO[infoSrc.t] } : { name: tr(FAUNA[infoSrc.t].en, FAUNA[infoSrc.t].fr), ...FAUNA[infoSrc.t] };
+      const cap = d.name.charAt(0).toUpperCase() + d.name.slice(1);
+      gInfo.append(b(cap)); if (d.ar) gInfo.append(' · ', b(d.ar, 'ar')); gInfo.append(' — ', tr(...d.fact));
+    }
+    onLang(() => showInfo());
+
     /* scenery */
-    function layout() {
+    /* the back of each landscape: sea, mountains, steppe or dunes */
+    const BACKS = {
+      littoral(W) {
+        mk('rect', { class: 'g-sea', x: 0, y: GY - 112, width: W, height: 112 }, Lb);
+        for (let i = 0; i < 4; i++) { const y = GY - 100 + i * 16; let d = ''; for (let x = -40; x < W + 40; x += 60) d += `M${x} ${y} q 15 -5 30 0 `; mk('path', { class: 'g-wave', d, style: `--wd:${(5 + i * 1.3).toFixed(1)}s` }, Lb); }
+        const boat = mk('g', { class: 'g-boat', style: `--vw:${W}px` }, Lb);
+        mk('path', { d: `M0 ${GY - 104} l 26 0 l -5 7 l -16 0 z`, style: 'fill:var(--fg);opacity:.55' }, boat);
+        mk('path', { d: `M12 ${GY - 106} l 0 -30 l 14 28 z`, style: 'fill:#fff;opacity:.9' }, boat);
+        mk('path', { class: 'g-hill', d: `M0 ${GY - 70} C ${W * .12} ${GY - 112}, ${W * .26} ${GY - 64}, ${W * .4} ${GY - 22} L ${W * .4} ${VH} L 0 ${VH}Z` }, Lb);
+        mk('path', { class: 'g-hill', d: `M${W * .64} ${GY - 22} C ${W * .78} ${GY - 70}, ${W * .9} ${GY - 100}, ${W} ${GY - 72} L ${W} ${VH} L ${W * .64} ${VH}Z` }, Lb);
+        mk('path', { class: 'g-hill2', d: `M0 ${GY - 18} C ${W * .3} ${GY - 50}, ${W * .55} ${GY - 6}, ${W * .78} ${GY - 30} S ${W * .95} ${GY - 26}, ${W} ${GY - 16} L ${W} ${VH} L 0 ${VH}Z` }, Lb);
+      },
+      atlas(W) {
+        const pk = [[0, 90], [.12, 210], [.22, 150], [.38, 262], [.5, 170], [.66, 240], [.8, 150], [.9, 205], [1, 120]];
+        mk('path', { class: 'g-mtn', d: 'M' + pk.map(([x, h]) => `${f1(x * W)} ${GY - h}`).join(' L ') + ` L ${W} ${VH} L 0 ${VH}Z` }, Lb);
+        pk.forEach(([x, h], i) => { if (h < 200) return; const px = x * W, py = GY - h; mk('path', { class: 'g-snow', d: `M${f1(px)} ${py} L ${f1(px - 26)} ${py + 30} L ${f1(px - 10)} ${py + 24} L ${f1(px)} ${py + 34} L ${f1(px + 12)} ${py + 25} L ${f1(px + 24)} ${py + 31}Z` }, Lb); });
+        mk('path', { class: 'g-hill2', d: `M0 ${GY - 30} C ${W * .25} ${GY - 70}, ${W * .5} ${GY - 20}, ${W * .75} ${GY - 50} S ${W * .95} ${GY - 40}, ${W} ${GY - 24} L ${W} ${VH} L 0 ${VH}Z` }, Lb);
+      },
+      plateaux(W) {
+        mk('path', { class: 'g-mtn far', d: `M0 ${GY - 70} L ${W * .15} ${GY - 100} L ${W * .3} ${GY - 78} L ${W * .5} ${GY - 112} L ${W * .7} ${GY - 82} L ${W * .85} ${GY - 98} L ${W} ${GY - 74} L ${W} ${VH} L 0 ${VH}Z` }, Lb);
+        mk('path', { class: 'g-steppe', d: `M0 ${GY - 46} C ${W * .3} ${GY - 54}, ${W * .7} ${GY - 40}, ${W} ${GY - 50} L ${W} ${VH} L 0 ${VH}Z` }, Lb);
+        const rr = mulberry(7);
+        for (let x = 10; x < W; x += 30 + rr() * 50) { const y = GY - 42 + rr() * 30; mk('ellipse', { class: 'g-tussock', cx: f1(x), cy: f1(y), rx: f1(7 + rr() * 8), ry: f1(3 + rr() * 3) }, Lb); }
+      },
+      sahara(W) {
+        mk('path', { class: 'g-mesa', d: `M${W * .62} ${GY - 40} L ${W * .64} ${GY - 150} L ${W * .7} ${GY - 160} L ${W * .74} ${GY - 120} L ${W * .76} ${GY - 120} L ${W * .78} ${GY - 170} L ${W * .86} ${GY - 172} L ${W * .88} ${GY - 40}Z` }, Lb);
+        mk('path', { class: 'g-arch', d: `M${W * .74} ${GY - 120} Q ${W * .75} ${GY - 80} ${W * .76} ${GY - 120}Z` }, Lb);
+        mk('path', { class: 'g-dune', d: `M0 ${GY - 70} C ${W * .15} ${GY - 120}, ${W * .3} ${GY - 110}, ${W * .45} ${GY - 66} S ${W * .8} ${GY - 50}, ${W} ${GY - 90} L ${W} ${VH} L 0 ${VH}Z` }, Lb);
+        if (BIOMES.sahara.fennec) drawFennec(W * .12, GY - 46);
+        mk('path', { class: 'g-dune2', d: `M0 ${GY - 26} Q ${W * .12} ${GY - 64} ${W * .24} ${GY - 30} T ${W * .6} ${GY - 28} T ${W} ${GY - 20} L ${W} ${VH} L 0 ${VH}Z` }, Lb);
+      }
+    };
+    /* the fennec peeks over a dune; tap it and it ducks behind */
+    let fennec = null;
+    function drawFennec(x, y) {
+      fennec = mk('g', { class: 'fennec fauna', 'data-fauna': 'fennec', transform: `translate(${f1(x)} ${f1(y)}) scale(1.45)` }, Lb);
+      const g = mk('g', { class: 'fn-body', style: 'stroke:#a87a45;stroke-width:.7;stroke-linejoin:round' }, fennec);
+      mk('path', { d: 'M-9 -7 C -26 -5, -32 -15, -28 -21 C -22 -15, -16 -11, -7 -11Z', style: 'fill:#e2b77f' }, g);
+      mk('circle', { cx: -28, cy: -20, r: 3, style: 'fill:#4a3626;stroke:none' }, g);
+      mk('rect', { x: 2, y: -7, width: 3, height: 7, rx: 1.5, style: 'fill:#e2b77f' }, g); mk('rect', { x: 7, y: -7, width: 3, height: 7, rx: 1.5, style: 'fill:#e2b77f' }, g);
+      mk('ellipse', { cx: 0, cy: -10, rx: 12, ry: 8, style: 'fill:#edc896' }, g);
+      const ear = (d, di) => { const e = mk('g', { class: 'fn-ear' }, g); mk('path', { d, style: 'fill:#edc896' }, e); mk('path', { d: di, style: 'fill:#f2ab98;stroke:none' }, e); };
+      ear('M4 -26 L-1 -48 L12 -29Z', 'M5 -29 L2 -43 L9 -30Z'); ear('M11 -28 L19 -49 L19 -26Z', 'M13 -29 L18 -44 L17 -28Z');
+      mk('circle', { cx: 10, cy: -22, r: 7.5, style: 'fill:#f1d1a4' }, g);
+      mk('ellipse', { cx: 15.5, cy: -19.5, rx: 4.2, ry: 2.6, style: 'fill:#f7e3c3;stroke:none' }, g);
+      mk('circle', { class: 'fn-eye', cx: 8, cy: -23.5, r: 1.4, style: 'fill:#2b1d12;stroke:none' }, g); mk('circle', { class: 'fn-eye', cx: 13, cy: -23.5, r: 1.4, style: 'fill:#2b1d12;stroke:none' }, g);
+      mk('circle', { cx: 19.2, cy: -19.8, r: 1.3, style: 'fill:#2b1d12;stroke:none' }, g);
+    }
+    function layout(force) {
       const b = stageEl.getBoundingClientRect(); if (!b.width) return;
       const nVW = Math.max(380, Math.round(VH * b.width / b.height));
-      if (nVW === VW && Lb.childNodes.length) return;
+      if (!force && nVW === VW && Lb.childNodes.length) return;
       VW = nVW; svg.setAttribute('viewBox', `0 0 ${VW} ${VH}`);
       $('#gSun').setAttribute('transform', `translate(${VW - 90} 82)`); $('#gMoon').setAttribute('transform', `translate(${VW - 90} 82)`);
       cloud.setAttribute('transform', `translate(${VW / 2} 56)`);
-      Lb.innerHTML = ''; Lf.innerHTML = '';
-      mk('path', { class: 'g-hill', d: `M0 ${GY - 60} C ${VW * .2} ${GY - 120}, ${VW * .42} ${GY - 40}, ${VW * .6} ${GY - 76} S ${VW * .9} ${GY - 96}, ${VW} ${GY - 50} L ${VW} ${VH} L 0 ${VH}Z` }, Lb);
-      mk('path', { class: 'g-hill2', d: `M0 ${GY - 18} C ${VW * .3} ${GY - 56}, ${VW * .55} ${GY - 6}, ${VW * .78} ${GY - 34} S ${VW * .95} ${GY - 30}, ${VW} ${GY - 16} L ${VW} ${VH} L 0 ${VH}Z` }, Lb);
+      Lb.innerHTML = ''; Lf.innerHTML = ''; fennec = null;
+      BACKS[biome](VW);
       mk('path', { class: 'g-soil', d: `M0 ${GY} Q ${VW / 2} ${GY + 12} ${VW} ${GY} L ${VW} ${VH} L 0 ${VH}Z` }, Lf);
       mk('path', { class: 'g-edge', d: `M0 ${GY} Q ${VW / 2} ${GY + 12} ${VW} ${GY}` }, Lf);
       const rr = mulberry(11);
       for (let i = 0; i < VW / 40; i++) { const x = rr() * VW, y = groundY(x) + 14 + rr() * 46; mk('ellipse', { class: 'g-peb', cx: f1(x), cy: f1(y), rx: f1(2 + rr() * 5), ry: f1(1.5 + rr() * 2.5) }, Lf); }
-      for (let x = 8; x < VW; x += 26 + rr() * 40) { const y = groundY(x) + 1; let d = ''; for (let k = 0; k < 4; k++) { const bx = x + k * 3, h = 6 + rr() * 9, lean = (rr() - .5) * 8; d += `M${f1(bx)} ${f1(y)} Q ${f1(bx + lean * .3)} ${f1(y - h * .6)} ${f1(bx + lean)} ${f1(y - h)} Q ${f1(bx + lean * .3 + 2)} ${f1(y - h * .5)} ${f1(bx + 2.4)} ${f1(y)}Z `; } mk('path', { class: 'g-tuft', d }, Lf); }
+      for (let x = 8; x < VW; x += (biome === 'sahara' ? 90 : 26) + rr() * 40) { const y = groundY(x) + 1; let d = ''; for (let k = 0; k < 4; k++) { const bx = x + k * 3, h = 6 + rr() * 9, lean = (rr() - .5) * 8; d += `M${f1(bx)} ${f1(y)} Q ${f1(bx + lean * .3)} ${f1(y - h * .6)} ${f1(bx + lean)} ${f1(y - h)} Q ${f1(bx + lean * .3 + 2)} ${f1(y - h * .5)} ${f1(bx + 2.4)} ${f1(y)}Z `; } mk('path', { class: 'g-tuft', d }, Lf); }
       plants.forEach(p => { p.x = p.f * VW; p.base = groundY(p.x) + 3; p.g.setAttribute('transform', `translate(${f1(p.x)} ${f1(p.base)})`); p.heads = p.local.map(h => ({ x: h.x + p.x, y: h.y + p.base })); });
     }
 
     /* plants */
     const plants = [];
-    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(plants.map(p => ({ f: +p.f.toFixed(4), t: p.t, s: p.s })))); } catch (e) {} };
+    const save = () => { try { localStorage.setItem(BIOMES[biome].key, JSON.stringify(plants.map(p => ({ f: +p.f.toFixed(4), t: p.t, s: p.s })))); } catch (e) {} };
     const updCount = () => { const n = plants.length; countEl.textContent = n; countWord.textContent = lang === 'fr' ? (n > 1 ? 'plantes' : 'plante') : (n === 1 ? 'plant' : 'plants'); };
     onLang(updCount); updCount();
     function plantAt(f, type, seed, opts = {}) {
@@ -793,17 +970,18 @@
       const p = { g, inner, f, t: type, s: seed, x, base, r, local: c.heads, stems: c.stems, heads: c.heads.map(h => ({ x: h.x + x, y: h.y + base })) };
       plants.push(p);
       while (plants.length > MAX) { const old = plants.shift(); old.g.classList.add('fade'); setTimeout(() => old.g.remove(), 900); }
-      updCount(); if (!opts.silent) { save(); label(p); }
+      updCount(); if (!opts.silent) { save(); label(SPECIES[p.t].name, tr(SPECIES[p.t].common, SPECIES[p.t].fr), INFO[p.t].ar, p.f); showInfo({ k: 'plant', t: p.t }); }
       return p;
     }
-    function label(p) {
+    // the name that rises over a new plant (or an animal you tapped): Latin name, common name · Arabic name
+    function label(latin, common, ar, f) {
       const el = document.createElement('div'); el.className = 'glabel';
-      el.innerHTML = `<i></i><span></span>`; el.querySelector('i').textContent = SPECIES[p.t].name; el.querySelector('span').textContent = lang === 'fr' ? SPECIES[p.t].fr : SPECIES[p.t].common;
-      el.style.left = clamp(p.f, .1, .9) * 100 + '%'; el.style.bottom = '12px';
+      el.innerHTML = `<i></i><span></span>`; el.querySelector('i').textContent = latin; el.querySelector('span').textContent = ar ? `${common} · ${ar}` : common;
+      el.style.left = clamp(f, .1, .9) * 100 + '%'; el.style.bottom = '12px';
       stageEl.appendChild(el); setTimeout(() => el.remove(), 3300);
     }
     let lastType = '';
-    const nextType = () => { let t; do { t = TYPES[(Math.random() * TYPES.length) | 0]; } while (t === lastType); lastType = t; return t; };
+    const nextType = () => { const pool = BIOMES[biome].pool; let t; do { t = pool[(Math.random() * pool.length) | 0]; } while (t === lastType && pool.length > 1); lastType = t; return t; };
     const freeSpot = () => { let best = .5, bd = -1; for (let i = 0; i < 12; i++) { const f = .06 + Math.random() * .88, d = plants.reduce((m, p) => Math.min(m, Math.abs(p.f - f)), 1); if (d > bd) { bd = d; best = f; } } return best; };
     function sow(f, fromY) {
       f = clamp(f, .03, .97);
@@ -854,6 +1032,32 @@
       const f = { g, x: Math.random() * VW, y: 60 + Math.random() * 120, vx: 0, vy: 0, tx: 0, ty: 0, rest: 0, ang: 0, ph: Math.random() * 6, onFlower: false };
       target(f); flies.push(f);
     }
+    /* the landscape's bird, seen from the side: it flies from flower to flower and perches on the plants */
+    function makeBird(kind) {
+      const C = FAUNA[kind], g = mk('g', { class: 'bird fauna', 'data-fauna': kind }, Lfly), b = mk('g', {}, g);
+      mk('path', { d: 'M-9 1 L-23 5 L-21 -2Z', style: `fill:${C.tail}` }, b);
+      mk('ellipse', { cx: 0, cy: 2, rx: 11.5, ry: 7.5, style: `fill:${C.body}` }, b);
+      mk('ellipse', { cx: 3, cy: 5, rx: 7.5, ry: 4, style: `fill:${C.belly}` }, b);
+      if (kind === 'hoopoe') ['-16', '-8', '0', '8'].forEach((a, i) => { const cr = mk('g', { transform: `translate(9 -8) rotate(${a})` }, b); mk('path', { d: 'M0 0 L-3 -13 L3 -13Z', style: 'fill:#e08a4f' }, cr); mk('path', { d: 'M-3 -13 L3 -13 L0 -16Z', style: 'fill:#1f1f1f' }, cr); });
+      mk('circle', { cx: 10, cy: -4, r: 6.2, style: `fill:${C.head}` }, b);
+      if (kind === 'goldfinch') { mk('path', { d: 'M5 -9 C 8 -11, 12 -11, 15 -8 L 15 -1 C 12 0, 9 0, 7 -2Z', style: 'fill:#c8102e' }, b); mk('path', { d: 'M4 -10 C 6 -6, 6 -2, 4 1', style: 'stroke:#1c1c1c;stroke-width:2.4;fill:none' }, b); }
+      if (kind === 'nuthatch') { mk('path', { d: 'M4 -8 C 7 -11, 12 -11, 16 -7 L 16 -6 C 12 -8, 8 -8, 4 -6Z', style: 'fill:#1c1c1c' }, b); mk('path', { d: 'M6 -5.6 L 15 -5.6', style: 'stroke:#ffffff;stroke-width:1.4' }, b); }
+      mk('path', { d: kind === 'hoopoe' ? 'M15 -4 C 20 -3, 24 0, 26 3 C 22 0, 19 -1, 15 -2Z' : 'M15 -5 L 21 -3.5 L 15 -2Z', style: `fill:${C.beak}` }, b);
+      mk('circle', { cx: 12, cy: -5, r: 1.3, style: 'fill:#111' }, b);
+      const w = mk('g', { class: 'bwing' }, g);
+      mk('path', { d: 'M-5 0 C 0 -14, 9 -16, 11 -4 C 5 -1, 0 1, -5 0Z', style: `fill:${C.wing}` }, w);
+      if (C.bar) mk('path', { d: kind === 'hoopoe' ? 'M-1 -4 L 9 -6 M-2 -8 L 6 -10' : 'M0 -5 C 3 -8, 7 -8, 9 -5', style: `stroke:${C.bar};stroke-width:2.2;fill:none` }, w);
+      const f = { g, bird: true, dir: 1, x: Math.random() * VW, y: 60 + Math.random() * 100, vx: 0, vy: 0, tx: 0, ty: 0, rest: 0, ang: 0, ph: Math.random() * 6, onFlower: false };
+      target(f); flies.push(f);
+    }
+    /* each landscape has its own visitors */
+    function setFauna() {
+      flies.splice(0); Lfly.innerHTML = '';
+      if (reduce) return;
+      BIOMES[biome].flies.forEach(([c1, c2]) => makeFly(c1, c2));
+      if (BIOMES[biome].bird) makeBird(BIOMES[biome].bird);
+      if (visible && !raf && flies.length) { lastT = 0; raf = requestAnimationFrame(tick); }
+    }
     function target(f) {
       f.g.classList.remove('rest');
       const withHeads = plants.filter(p => p.heads.length);
@@ -875,7 +1079,8 @@
             const ta = Math.atan2(f.vy, f.vx) * 180 / Math.PI + 90; let da = ((ta - f.ang + 540) % 360) - 180; f.ang += da * .08 * dt;
           }
         }
-        f.g.setAttribute('transform', `translate(${f1(f.x)} ${f1(f.y)}) rotate(${f1(f.ang)}) scale(.95)`);
+        if (f.bird) { if (Math.abs(f.vx) > .2) f.dir = f.vx < 0 ? -1 : 1; f.g.setAttribute('transform', `translate(${f1(f.x)} ${f1(f.y - 4)}) scale(${f.dir} 1)`); }
+        else f.g.setAttribute('transform', `translate(${f1(f.x)} ${f1(f.y)}) rotate(${f1(f.ang)}) scale(.95)`);
       });
       raf = requestAnimationFrame(tick);
     }
@@ -883,23 +1088,47 @@
     /* first visit: restore the saved garden or sow a starter bed */
     let started = false;
     function start() {
-      if (started) return; started = true; layout();
-      let saved = null; try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+      if (started) return; started = true; layout(true);
+      loadGarden(); setFauna(); showInfo({ k: 'biome' });
+    }
+    /* switch landscape: each one keeps its own garden on this device */
+    function setBiome(b) {
+      if (!Object.prototype.hasOwnProperty.call(BIOMES, b) || (b === biome && started)) return;
+      biome = b; stageEl.dataset.biome = b; lastType = ''; gen++;
+      $$('.gbiome').forEach(x => x.setAttribute('aria-pressed', x.dataset.biome === b ? 'true' : 'false'));
+      try { localStorage.setItem('hbc-garden-biome', b); } catch (e) {}
+      if (!started) return;
+      plants.splice(0).forEach(p => p.g.remove()); updCount();
+      $$('.glabel', stageEl).forEach(l => l.remove());
+      layout(true); loadGarden(); setFauna(); showInfo({ k: 'biome' });
+    }
+    $$('.gbiome').forEach(x => { x.setAttribute('aria-pressed', x.dataset.biome === biome ? 'true' : 'false'); x.addEventListener('click', () => setBiome(x.dataset.biome)); });
+    function loadGarden() {
+      let saved = null; try { saved = JSON.parse(localStorage.getItem(BIOMES[biome].key) || 'null'); } catch (e) {}
       // only trust well-formed entries: a known species, a position between 0 and 1, an integer seed
       if (Array.isArray(saved)) saved = saved.filter(p => p && typeof p === 'object' && Object.prototype.hasOwnProperty.call(SPECIES, p.t)
         && typeof p.f === 'number' && p.f >= 0 && p.f <= 1 && Number.isInteger(p.s));
+      const g0 = ++gen, later = (ms, fn) => setTimeout(() => { if (g0 === gen) fn(); }, ms); // a quick switch of landscape cancels what is still pending
       if (Array.isArray(saved) && saved.length) {
-        saved.slice(-MAX).forEach((p, i) => setTimeout(() => plantAt(p.f, p.t, p.s, { silent: true }), reduce ? 0 : i * 140));
+        saved.slice(-MAX).forEach((p, i) => later(reduce ? 0 : i * 140, () => plantAt(p.f, p.t, p.s, { silent: true })));
         hint.classList.add('gone');
       } else {
-        const n = VW < 700 ? 4 : 7, order = [...TYPES].sort(() => Math.random() - .5);
-        for (let i = 0; i < n; i++) setTimeout(() => plantAt((i + .5) / n + (Math.random() - .5) * .05, order[i % order.length], (Math.random() * 1e9) | 0, { silent: true }), reduce ? 0 : 300 + i * 260);
-        setTimeout(save, reduce ? 50 : 300 + n * 260 + 50);
+        const pool = BIOMES[biome].pool, n = Math.min(VW < 700 ? 4 : 6, pool.length + 2), order = [...pool].sort(() => Math.random() - .5);
+        for (let i = 0; i < n; i++) later(reduce ? 0 : 300 + i * 260, () => plantAt((i + .5) / n + (Math.random() - .5) * .05, order[i % order.length], (Math.random() * 1e9) | 0, { silent: true }));
+        later(reduce ? 50 : 300 + n * 260 + 50, save);
       }
-      if (!reduce) { makeFly('#0b5ba8', '#a6d4ff'); makeFly('#f2a03d', '#fff1b8'); }
     }
+    let gen = 0;
 
     svg.addEventListener('click', e => {
+      // an animal: show its name instead of sowing (the fennec ducks behind its dune, then peeks again)
+      const an = e.target.closest('.fauna');
+      if (an) {
+        const k = an.dataset.fauna, F = FAUNA[k], r = an.getBoundingClientRect(), s = stageEl.getBoundingClientRect();
+        label(F.name, tr(F.en, F.fr), F.ar, (r.left + r.width / 2 - s.left) / s.width); showInfo({ k: 'fauna', t: k });
+        if (k === 'fennec' && !an.classList.contains('hide')) { an.classList.add('hide'); setTimeout(() => an.classList.remove('hide'), 2600); }
+        return;
+      }
       const m = svg.getScreenCTM(); if (!m) return;
       const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const p = pt.matrixTransform(m.inverse());
       sow(p.x / VW, Math.min(p.y, groundY(p.x) - 6));
@@ -908,7 +1137,7 @@
     water.addEventListener('click', rain);
     $('#gClear').addEventListener('click', () => {
       plants.splice(0).forEach((p, i) => { setTimeout(() => p.g.classList.add('fade'), i * 40); setTimeout(() => p.g.remove(), 900 + i * 40); });
-      try { localStorage.removeItem(KEY); } catch (e) {}
+      try { localStorage.removeItem(BIOMES[biome].key); } catch (e) {}
       updCount(); hint.classList.remove('gone');
     });
     addEventListener('resize', () => started && layout());

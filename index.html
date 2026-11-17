@@ -779,6 +779,54 @@ html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 80px)}
 .gbtn.primary:hover{background:var(--green-ink);color:#fff}
 :root[data-theme="dark"] .gbtn.primary:hover{color:#0b1714}
 .gbtn[disabled]{opacity:.55;cursor:default;transform:none}
+
+/* ---------- GARDEN: four landscapes of Algeria ---------- */
+.gbiomes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.gbiome{-webkit-appearance:none;appearance:none;display:inline-flex;align-items:center;gap:8px;font:600 14px var(--f-body);padding:10px 16px;min-height:44px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;transition:background .3s,color .3s,border-color .3s,transform .3s var(--ease)}
+.gbiome:hover{border-color:var(--green);transform:translateY(-1px)}
+.gbiome[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.gbiome:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+@media(max-width:520px){.gbiomes{display:grid;grid-template-columns:1fr 1fr}.gbiome{justify-content:center;padding:10px 8px}}
+.ginfo{margin:14px 0 0;min-height:1.6em;font-size:15px;color:var(--muted);line-height:1.5}
+.ginfo b{color:var(--fg);font-weight:600}
+.ginfo .ar{font-family:system-ui,"Segoe UI","Noto Naskh Arabic",sans-serif;font-size:16px;color:var(--fg);unicode-bidi:isolate}
+/* soil and sky of each landscape (the sky changes only in the light theme; at night every landscape gets the moon) */
+.gstage[data-biome="atlas"]{--soil:#a98a63;--soil-2:#8d7050}
+.gstage[data-biome="plateaux"]{--soil:#d8c487;--soil-2:#c4ad6b}
+.gstage[data-biome="sahara"]{--soil:#ecc98d;--soil-2:#dcb06a}
+html:not([data-theme="dark"]) .gstage[data-biome="atlas"]{background:linear-gradient(180deg,color-mix(in srgb,#9fc3e8 62%,var(--surface)) 0%,var(--surface) 80%)}
+html:not([data-theme="dark"]) .gstage[data-biome="plateaux"]{background:linear-gradient(180deg,color-mix(in srgb,#f3e2b3 60%,var(--surface)) 0%,var(--surface) 82%)}
+html:not([data-theme="dark"]) .gstage[data-biome="sahara"]{background:linear-gradient(180deg,color-mix(in srgb,#f6c98a 66%,var(--surface)) 0%,color-mix(in srgb,#fbe8c8 60%,var(--surface)) 82%)}
+.gstage[data-biome="sahara"] .g-tuft{fill:#9a8a52}
+.g-sea{fill:color-mix(in srgb,var(--blue) 42%,var(--surface))}
+.g-wave{fill:none;stroke:rgba(255,255,255,.55);stroke-width:1.6;stroke-linecap:round;animation:gwave var(--wd,6s) ease-in-out infinite alternate}
+@keyframes gwave{to{transform:translateX(22px)}}
+.g-boat{animation:gboat 70s linear infinite}
+@keyframes gboat{from{transform:translateX(-60px)}to{transform:translateX(calc(var(--vw,1200px) + 60px))}}
+.g-mtn{fill:color-mix(in srgb,#5f6f80 38%,var(--surface))}
+.g-mtn.far{fill:color-mix(in srgb,#8a8a6a 26%,var(--surface))}
+.g-snow{fill:color-mix(in srgb,#ffffff 85%,var(--surface))}
+.g-steppe{fill:color-mix(in srgb,#c9b56a 45%,var(--surface))}
+.g-tussock{fill:color-mix(in srgb,#8fa35a 55%,var(--surface))}
+.g-mesa{fill:color-mix(in srgb,#b0623a 48%,var(--surface))}
+.g-arch{fill:color-mix(in srgb,#f6c98a 66%,var(--surface))}
+.g-dune{fill:color-mix(in srgb,#e8b26a 55%,var(--surface))}
+.g-dune2{fill:color-mix(in srgb,#efc27e 70%,var(--surface))}
+/* the fennec: twitching ears, blinking eyes, ducks behind its dune when tapped */
+.fennec{cursor:pointer}
+.fennec .fn-body{transition:transform .7s var(--ease)}
+.fennec.hide .fn-body{transform:translateY(48px)}
+.fn-ear{transform-box:fill-box;transform-origin:50% 100%;animation:gfnEar 5s ease-in-out infinite}
+.fn-ear+.fn-ear{animation-delay:1.3s}
+@keyframes gfnEar{0%,88%,100%{transform:rotate(0)}92%{transform:rotate(-12deg)}96%{transform:rotate(6deg)}}
+.fn-eye{transform-box:fill-box;transform-origin:center;animation:gfnBlink 4.4s infinite}
+@keyframes gfnBlink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+/* birds seen from the side: the wing beats in flight and folds when perched */
+.bird{cursor:pointer}
+.bird .bwing{transform-box:fill-box;transform-origin:30% 100%;animation:gwing .15s ease-in-out infinite alternate}
+.bird.rest .bwing{animation:none}
+@keyframes gwing{to{transform:scaleY(-.55)}}
+.fauna{pointer-events:visiblePainted}
 .gnote{font-size:14px;color:var(--muted);margin-left:auto}
 @media(max-width:700px){.gnote{margin-left:0;flex-basis:100%}}
 
@@ -1218,8 +1266,8 @@ p,li,dd{text-wrap:pretty}
     <div class="garden-head">
       <div>
         <span class="eyebrow" data-i18n="g.eyebrow">Interactive · Living garden</span>
-        <h2 class="sec-title" style="margin-top:18px" data-i18n="g.h2">Grow the <em>club garden</em></h2>
-        <p data-i18n="g.p">Tap the soil to sow a seed, then water the garden and watch the butterflies come.</p>
+        <h2 class="sec-title" style="margin-top:18px" data-i18n="g.h2">A garden <em>of Algeria</em></h2>
+        <p data-i18n="g.p">Pick a landscape, tap the soil to sow its plants, then water it and see who comes to visit.</p>
       </div>
       <figure class="dandel" id="dandel" tabindex="0" role="button" aria-label="Blow on the dandelion" data-i18n-attr="aria-label:g.blowA">
         <svg viewBox="0 0 200 250" aria-hidden="true">
@@ -1231,6 +1279,13 @@ p,li,dd{text-wrap:pretty}
         </svg>
         <figcaption><i>Taraxacum officinale</i><br><span data-i18n="g.blow">hover or tap to blow</span></figcaption>
       </figure>
+    </div>
+    <!-- four landscapes of Algeria, each with its own plants, its animal and its own saved garden (see BIOMES in app.js) -->
+    <div class="gbiomes" role="group" aria-label="Landscapes of Algeria" data-i18n-attr="aria-label:g.biomesA">
+      <button type="button" class="gbiome" data-biome="littoral" aria-pressed="true"><span aria-hidden="true">🌊</span><span data-i18n="g.b1">Coast</span></button>
+      <button type="button" class="gbiome" data-biome="atlas" aria-pressed="false"><span aria-hidden="true">🏔️</span><span data-i18n="g.b2">Atlas</span></button>
+      <button type="button" class="gbiome" data-biome="plateaux" aria-pressed="false"><span aria-hidden="true">🌾</span><span data-i18n="g.b3">High Plateaus</span></button>
+      <button type="button" class="gbiome" data-biome="sahara" aria-pressed="false"><span aria-hidden="true">🏜️</span><span data-i18n="g.b4">Sahara</span></button>
     </div>
     <div class="gstage" id="gstage">
       <svg id="gsvg" viewBox="0 0 1200 440" role="img" aria-label="Interactive garden. Tap the soil to plant a seed." data-i18n-attr="aria-label:g.stageA">
@@ -1252,6 +1307,7 @@ p,li,dd{text-wrap:pretty}
       <button class="gbtn" type="button" id="gClear"><span data-i18n="g.clear">Start over</span></button>
       <span class="gnote" id="gnote" data-i18n="g.note">Your garden is kept on this device.</span>
     </div>
+    <p class="ginfo" id="gInfo" aria-live="polite"></p>
   </div>
 </section>
 
@@ -1381,6 +1437,6 @@ p,li,dd{text-wrap:pretty}
      into the global scope. After editing app.js, change the ?v= number
      below so visitors' browsers load the new version.
      ===================================================================== -->
-<script src="app.js?v=20261116b"></script>
+<script src="app.js?v=20261117a"></script>
 
 </body></html>
