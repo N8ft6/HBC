@@ -1227,7 +1227,7 @@
   // It saves each registration to the club's Google Sheet and emails a confirmation to the new member.
   // Left empty, the form runs in demo mode.
   // ⚠️ If this URL changes, also update connect-src in the security policy (CSP) at the top of index.html.
-  const FORM_ENDPOINT = "https://script.google.com/macros/s/AKfycbwFYkGRBzAjsfr7qgj7E4vOuFT65GWUKY8Rec8Fw_TblW3lJIdHnjqasO4Gzad4fD1fuA/exec";
+  const FORM_ENDPOINT = "https://script.google.com/macros/s/AKfycbwdrx3T2YXQQlMEEyeO9qGaaaUoXhBTiZZwn_91SUZ26mxlAYe2N7WxDj60GAXDSliN/exec";
   const L = (en, fr) => ({ en, fr });
   const tx = o => (o && typeof o === 'object') ? (o[lang] != null ? o[lang] : o.en) : (o == null ? '' : String(o));
   const CELLS = [
