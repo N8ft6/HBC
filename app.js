@@ -44,7 +44,7 @@
     'q1': 'Qui peut rejoindre le club ?', 'a1': "Tous les étudiants de l’Université d’Alger 1, quelle que soit leur filière.",
     'q2': "Faut-il déjà s'y connaître en écologie ?", 'a2': 'Non. La curiosité suffit : on apprend ensemble, sur le terrain, en atelier et lors des séminaires.',
     'q3': 'Où et quand le club se réunit-il ?', 'a3': "À la Faculté des Sciences, au centre d’Alger. Les membres reçoivent chaque date par e-mail.",
-    'q4': 'Que se passe-t-il après mon inscription ?', 'a4': "Vous recevez aussitôt un e-mail de confirmation. Le bureau vous envoie ensuite sa réponse, votre cellule et la date de la prochaine réunion.",
+    'q4': 'Que se passe-t-il après mon inscription ?', 'a4': "Vous recevez aussitôt un e-mail de confirmation. Si votre candidature est retenue, nous vous invitons à un court entretien, puis nous vous envoyons notre réponse par e-mail.",
     'q5': 'Puis-je proposer mon propre projet ?', 'a5': "Oui ! Mentionnez-le dans le formulaire : la cellule Développement de projets vous aidera à le concrétiser.",
     'q6': 'Que faites-vous de mes données personnelles ?', 'a6': "Seul le bureau du club voit vos réponses, dans un tableau Google privé. Elles servent uniquement à votre inscription, ne sont jamais partagées et sont supprimées après la saison 2026-2027. Une vérification anti-robot de Cloudflare a lieu à l’envoi. Pour consulter ou supprimer vos données : hopebuds.club@univ-alger.dz.",
     'cell.eyebrow': 'Trouvez votre équipe', 'cell.h2': 'Quatre cellules, <em>un seul club</em>',

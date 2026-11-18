@@ -64,7 +64,9 @@ const COLUMNS = [
   ['choice2', '2e choix'], ['why2', 'Pourquoi ce 2e choix'], ['exp2', 'Expérience (2e choix)'], ['expText2', 'Détail expérience (2e choix)'],
   ['why', 'Pourquoi rejoindre HBC'], ['interests', "Centres d'intérêt"], ['skills', 'Compétences'],
   ['availability', 'Disponibilité'], ['when', 'Quand'], ['outside', 'Activités hors université'], ['commitment', 'Engagement'],
-  ['gain', 'Ce que la personne espère'], ['activity', 'Activité proposée'], ['ideas', 'Idées & suggestions']
+  ['gain', 'Ce que la personne espère'], ['activity', 'Activité proposée'], ['ideas', 'Idées & suggestions'],
+  // Colonne AF, tenue par le script seul : e-mails d'entretien, d'admission ou de refus programmés et envoyés
+  ['followUp', 'Suivi des e-mails']
 ];
 
 // Règles de validation (les mêmes que sur le site)
@@ -294,7 +296,7 @@ const TXT = {
     choices: 'Vos choix de cellule',
     first: '1er choix', second: '2e choix',
     nextT: 'Et maintenant ?',
-    next: 'Votre inscription va être examinée par le bureau du club. Nous vous enverrons un second e-mail avec la suite : notre réponse, votre cellule et la date de la première réunion.',
+    next: 'Votre inscription va être examinée par le bureau du club. Nous vous écrirons ensuite : pour vous inviter à un court entretien, ou pour vous donner notre réponse.',
     nothing: 'Vous n’avez rien d’autre à faire d’ici là. Une question ? Répondez simplement à cet e-mail ou écrivez-nous à {contact}.',
     dupSubject: 'Hope Buds Club : vous êtes déjà inscrit(e) 🌱',
     dupHello: 'Bonjour,',
@@ -311,7 +313,7 @@ const TXT = {
     choices: 'Your cell choices',
     first: '1st choice', second: '2nd choice',
     nextT: 'What happens next?',
-    next: 'The club committee will now review your registration. We will send you a second email with the next steps: our answer, your cell and the date of the first meeting.',
+    next: 'The club committee will now review your registration. We will then write to you: to invite you to a short interview, or to give you our answer.',
     nothing: 'There is nothing else you need to do for now. Any questions? Just reply to this email or write to us at {contact}.',
     dupSubject: 'Hope Buds Club: you are already registered 🌱',
     dupHello: 'Hello,',
@@ -438,6 +440,7 @@ function underHourlyLimit_(name, max) {
 function cellValue_(k, d) {
   if (k === 'status') return 'À examiner';
   if (k === 'mailStatus') return 'En cours';
+  if (k === 'followUp') return ''; // jamais rempli par le site : seul le script de suivi y écrit
   if (k === 'createdAt') return new Date(); // heure du serveur, jamais celle envoyée par le navigateur
   if (k === 'lang') return d.lang === 'fr' ? 'FR' : 'EN';
   let v = d[k];
@@ -698,4 +701,239 @@ function importerAnciennesInscriptions() {
   if (dup) console.log('↩️ ' + dup + ' déjà présente(s) (même adresse e-mail), ignorée(s).');
   if (noMail.length) console.log('⚠️ Sans adresse e-mail valide, non importée(s) : ligne(s) ' + noMail.join(', ') + ' de l’onglet Forms. À ajouter à la main.');
   console.log('L’onglet « ' + FORMS_SHEET + ' » n’a pas été modifié : gardez-le comme archive, ou supprimez-le une fois l’import vérifié.');
+}
+
+/* ---------- E-mails de suivi : entretien, admission, refus ----------
+   Le responsable des inscriptions change le Statut d'une ligne dans le menu déroulant :
+     « Entretien »  → invitation à l'entretien, avec le lien Telegram de l'entretien ;
+     « Admis(e) »   → bienvenue, avec le lien du groupe Telegram du club ;
+     « Refusé(e) »  → information : pas de place cette saison (avant ou après l'entretien).
+   L'e-mail part 5 à 10 minutes plus tard : le temps de corriger une erreur de clic (il suffit de changer le Statut).
+   La colonne « Suivi des e-mails » montre ce qui est programmé (⏳ puis ⌛) et ce qui est parti (✓, avec la date).
+   Chaque e-mail ne part qu'une fois par personne. Langue : celle du site (FR ou EN) ; les deux pour les réponses Forms.
+   Les liens Telegram ne sont JAMAIS écrits ici (ce code est public) : ils sont dans les propriétés du script,
+   LIEN_ENTRETIEN et LIEN_GROUPE_TELEGRAM (⚙️ Paramètres du projet → Propriétés du script).
+   Installation : lancez une fois installerSuiviEmails. */
+const STATUS = { review: 'À examiner', imported: 'Importée (Forms)', interview: 'Entretien', admitted: 'Admis(e)', refused: 'Refusé(e)' };
+const FOLLOW_KINDS = ['interview', 'admitted', 'refused'];
+const FOLLOW_LABEL = { interview: 'Invitation à l’entretien', admitted: 'Bienvenue + groupe Telegram', refused: 'Refus' };
+const FOLLOW_PROP = { interview: 'LIEN_ENTRETIEN', admitted: 'LIEN_GROUPE_TELEGRAM' };
+const FOLLOW_MAX_PER_RUN = 30; // au-delà, la suite part au passage suivant (5 minutes plus tard)
+const FOLLOW_PENDING_RE = /^(⏳|⌛|⚠️)/m;
+
+const FOLLOW_TXT = {
+  fr: {
+    interview: { subject: 'Hope Buds Club : invitation à un entretien 🌱', button: 'Organiser mon entretien', paras: [
+      'Bonne nouvelle : votre candidature a retenu notre attention ! Nous aimerions faire votre connaissance lors d’un court entretien.',
+      'Pour l’organiser, rejoignez-nous sur Telegram avec le bouton ci-dessous : vous y trouverez le jour, l’heure et le déroulement.'] },
+    admitted: { subject: 'Bienvenue au Hope Buds Club ! 🎉', button: 'Rejoindre le groupe Telegram', paras: [
+      'Félicitations : à la suite de votre entretien, vous êtes officiellement membre du Hope Buds Club pour la saison {season} !',
+      'Rejoignez dès maintenant le groupe Telegram du club : c’est là que nous partageons les réunions, les activités et toutes les nouvelles.',
+      'Ce lien est réservé aux membres : merci de ne pas le partager.'] },
+    refused: { subject: 'Hope Buds Club : votre candidature', button: 'Suivez-nous sur Instagram', paras: [
+      'Merci pour l’intérêt que vous portez au Hope Buds Club et pour le temps que vous nous avez consacré.',
+      'Après examen, nous ne pouvons malheureusement pas retenir votre candidature pour la saison {season}.',
+      'Nos événements ouverts à tous restent accessibles : suivez-nous sur Instagram, nous serions ravis de vous y retrouver.'] }
+  },
+  en: {
+    interview: { subject: 'Hope Buds Club: interview invitation 🌱', button: 'Arrange my interview', paras: [
+      'Good news: your application caught our attention! We would like to get to know you in a short interview.',
+      'To arrange it, join us on Telegram with the button below: you will find the day, the time and how it works.'] },
+    admitted: { subject: 'Welcome to Hope Buds Club! 🎉', button: 'Join the Telegram group', paras: [
+      'Congratulations: following your interview, you are now officially a member of Hope Buds Club for the {season} season!',
+      'Join the club’s Telegram group now: it is where we share meetings, activities and all the news.',
+      'This link is for members only: please do not share it.'] },
+    refused: { subject: 'Hope Buds Club: your application', button: 'Follow us on Instagram', paras: [
+      'Thank you for your interest in Hope Buds Club and for the time you gave us.',
+      'After review, we are unfortunately unable to accept your application for the {season} season.',
+      'Our open events remain open to everyone: follow us on Instagram, we would be glad to see you there.'] }
+  }
+};
+
+// Statut choisi → type d'e-mail ('interview', 'admitted', 'refused'), ou null s'il n'y a rien à envoyer
+function statusKind_(v) {
+  const s = String(v == null ? '' : v).trim().toLowerCase();
+  if (s.indexOf('entretien') === 0) return 'interview';
+  if (s.indexOf('admis') === 0) return 'admitted';
+  if (s.indexOf('refus') === 0) return 'refused';
+  return null;
+}
+
+// Lien Telegram gardé dans les propriétés du script ; null s'il manque ou n'est pas un lien https
+function followLink_(kind) {
+  const v = (PropertiesService.getScriptProperties().getProperty(FOLLOW_PROP[kind]) || '').trim();
+  return /^https:\/\/[^\s"'<>]+$/.test(v) ? v : null;
+}
+
+/* Nouveau contenu de la case « Suivi des e-mails » d'une ligne.
+   phase 'edit' : le Statut vient d'être changé → l'envoi est (re)programmé, ⏳.
+   phase 'tick' : passage automatique toutes les 5 minutes → ⏳ devient ⌛, puis ⌛ est envoyé.
+   send(kind) renvoie null (envoyé), 'cancel' (le Statut a changé entre-temps), 'later' (trop d'envois ce passage)
+   ou le motif d'un échec (nouvel essai au passage suivant). */
+function followNext_(kind, cell, phase, send, stamp) {
+  const lines = String(cell == null ? '' : cell).split('\n').filter(l => l.trim());
+  const done = lines.filter(l => l.indexOf('✓ ') === 0);
+  const pend = lines.filter(l => FOLLOW_PENDING_RE.test(l))[0] || '';
+  const pendKind = pend ? FOLLOW_KINDS.filter(k => pend.indexOf(FOLLOW_LABEL[k]) >= 0)[0] || null : null;
+  const out = top => (top ? [top] : []).concat(done).join('\n');
+  if (!kind || done.some(l => l.indexOf('✓ ' + FOLLOW_LABEL[kind]) === 0)) return out(''); // rien à envoyer, ou déjà envoyé
+  const label = FOLLOW_LABEL[kind];
+  if (phase === 'edit' || pendKind !== kind) return out('⏳ ' + label + ' : envoi dans 5 à 10 min. Changez le Statut pour annuler.');
+  if (pend.indexOf('⏳') === 0) return out('⌛ ' + label + ' : envoi dans moins de 5 min. Changez le Statut pour annuler.');
+  const err = send(kind);
+  if (err === 'later') return String(cell);
+  if (err === 'cancel') return out('');
+  if (err) return out('⚠️ ' + label + ' : ' + err + '. Nouvel essai dans 5 min.');
+  return out('✓ ' + label + ' envoyé le ' + stamp);
+}
+
+// Déclencheur « à la modification » : le Statut vient de changer → programme ou annule l'e-mail tout de suite
+function surModificationStatut(e) {
+  if (!e || !e.range) { console.log('Cette fonction se lance toute seule quand un Statut change : rien à faire ici.'); return; }
+  const sh = e.range.getSheet();
+  if (sh.getName() !== CONFIG.SHEET_NAME) return;
+  const cS = colIndex_('status'), cF = colIndex_('followUp');
+  if (cS < e.range.getColumn() || cS > e.range.getLastColumn()) return;
+  const first = Math.max(2, e.range.getRow()), last = Math.min(e.range.getLastRow(), sh.getLastRow());
+  if (last < first) return;
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(10000)) return; // le passage automatique s'en chargera
+  try {
+    const st = sh.getRange(first, cS, last - first + 1, 1).getValues();
+    const fu = sh.getRange(first, cF, last - first + 1, 1).getValues();
+    const next = st.map((r, i) => [followNext_(statusKind_(r[0]), fu[i][0], 'edit', null, '')]);
+    if (next.some((v, i) => v[0] !== String(fu[i][0]))) sh.getRange(first, cF, next.length, 1).setValues(next);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Déclencheur toutes les 5 minutes : fait avancer chaque e-mail programmé, puis l'envoie
+function envoyerSuivis() {
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(1000)) return; // un passage est déjà en cours
+  try {
+    const sh = getSheet_(), n = sh.getLastRow();
+    if (n < 2) return;
+    const cS = colIndex_('status'), cF = colIndex_('followUp');
+    const st = sh.getRange(2, cS, n - 1, 1).getValues(), fu = sh.getRange(2, cF, n - 1, 1).getValues();
+    const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
+    let budget = FOLLOW_MAX_PER_RUN, sent = 0, failed = 0;
+    for (let i = 0; i < st.length; i++) {
+      const kind = statusKind_(st[i][0]), cur = String(fu[i][0] == null ? '' : fu[i][0]);
+      if (!kind && !FOLLOW_PENDING_RE.test(cur)) continue;
+      const row = i + 2;
+      const next = followNext_(kind, cur, 'tick', k => {
+        if (budget <= 0) return 'later';
+        budget--;
+        const r = sh.getRange(row, 1, 1, COLUMNS.length).getValues()[0]; // relu juste avant l'envoi
+        if (statusKind_(r[cS - 1]) !== k) return 'cancel';
+        const err = sendFollow_(k, r);
+        if (err) failed++; else sent++;
+        return err;
+      }, stamp);
+      if (next !== cur) sh.getRange(row, cF).setValue(next);
+    }
+    if (sent || failed) console.log('📧 E-mails de suivi : ' + sent + ' envoyé(s)' + (failed ? ', ' + failed + ' en échec (nouvel essai dans 5 min)' : '') + '.');
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Envoie un e-mail de suivi pour une ligne du tableau ; renvoie null si tout va bien, sinon le motif
+function sendFollow_(kind, r) {
+  const email = String(r[colIndex_('email') - 1]).trim();
+  if (!FORMS_EMAIL_.test(email)) return 'adresse e-mail invalide';
+  const link = kind === 'refused' ? CONFIG.INSTAGRAM_URL : followLink_(kind);
+  if (!link) return 'lien manquant, ajoutez la propriété du script ' + FOLLOW_PROP[kind];
+  if (!underHourlyLimit_('mails', CONFIG.MAILS_PER_HOUR)) return 'limite horaire d’e-mails atteinte';
+  if (MailApp.getRemainingDailyQuota() <= CONFIG.MAIL_RESERVE) return 'quota d’e-mails du jour presque atteint';
+  const lang = String(r[colIndex_('lang') - 1]).trim().toUpperCase();
+  const m = followEmail_(kind, lang === 'EN' ? ['en'] : lang === 'FR' ? ['fr'] : ['fr', 'en'], r[colIndex_('name') - 1], link);
+  try {
+    const opts = { to: email, subject: m.subject, body: m.text, htmlBody: m.html, name: CONFIG.CLUB_NAME };
+    if (CONFIG.REPLY_TO) opts.replyTo = CONFIG.REPLY_TO;
+    MailApp.sendEmail(opts);
+    return null;
+  } catch (err) {
+    console.error('E-mail de suivi non envoyé (' + kind + ') : ' + err);
+    return 'envoi impossible';
+  }
+}
+
+// Contenu de l'e-mail de suivi, dans une langue ou les deux (français d'abord), même présentation que la confirmation
+function followEmail_(kind, langs, name, link) {
+  const first = String(name == null ? '' : name).trim().split(/\s+/)[0];
+  const season = CONFIG.SEASON.replace('-', '–');
+  const h = esc_;
+  const parts = langs.map(L => {
+    const t = TXT[L], f = FOLLOW_TXT[L][kind];
+    return { L: L, t: t, f: f, hello: first ? t.hello.replace('{name}', first) : t.dupHello, paras: f.paras.map(p => p.replace('{season}', season)) };
+  });
+  const p0 = parts[0];
+  const text = parts.map(p => [p.hello, ''].concat(
+    p.paras.reduce((a, x) => a.concat([x, '']), []),
+    [p.f.button + (p.L === 'fr' ? ' : ' : ': ') + link, '', p.t.bye, p.t.team]).join('\n')
+  ).join('\n\n———\n\n') + '\n\n—\n' + p0.t.foot;
+  const body = parts.map(p =>
+    '<div lang="' + p.L + '">' +
+    '<p style="margin:0 0 14px">' + h(p.hello) + '</p>' +
+    p.paras.map(x => '<p style="margin:0 0 14px">' + h(x) + '</p>').join('') +
+    '<p style="margin:22px 0 26px"><a href="' + h(link) + '" style="display:inline-block;padding:13px 22px;border-radius:999px;background:#0b5ba8;color:#ffffff;text-decoration:none;font:600 15px/1 Arial,Helvetica,sans-serif">' + h(p.f.button) + ' →</a></p>' +
+    '<p style="margin:0">' + h(p.t.bye) + '<br><b>' + h(p.t.team) + '</b></p></div>'
+  ).join('<hr style="border:0;border-top:1px solid #e3ebd8;margin:28px 0">');
+  const html =
+'<!doctype html><html lang="' + p0.L + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + h(p0.f.subject) + '</title></head>' +
+'<body style="margin:0;padding:0;background:#f5f8ee">' +
+'<div style="display:none;max-height:0;overflow:hidden;opacity:0">' + h(p0.paras[0]) + '</div>' +
+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f8ee"><tr><td align="center" style="padding:28px 12px">' +
+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fcfdf8;border-radius:18px;overflow:hidden;border:1px solid #e3ebd8">' +
+  '<tr><td style="height:6px;background:#4eb017;background-image:linear-gradient(90deg,#4eb017,#0b5ba8);font-size:0;line-height:0">&nbsp;</td></tr>' +
+  '<tr><td style="padding:28px 28px 8px;font:700 24px/1.2 Georgia,\'Times New Roman\',serif;color:#10282a">🌱 Hope Buds Club' +
+    '<div style="margin-top:6px;font:500 11px/1.4 Consolas,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#4c625a">' + h(p0.L === 'fr' ? 'Saison ' : 'Season ') + h(season) + '</div></td></tr>' +
+  '<tr><td style="padding:16px 28px 28px;font:16px/1.6 Arial,Helvetica,sans-serif;color:#10282a">' + body + '</td></tr>' +
+  '<tr><td style="padding:18px 28px 24px;border-top:1px solid #e3ebd8;font:12px/1.5 Arial,Helvetica,sans-serif;color:#6b7f77">' + h(p0.t.foot) + '</td></tr>' +
+'</table></td></tr></table></body></html>';
+  return { subject: p0.f.subject, text: text, html: html };
+}
+
+// À lancer UNE fois (et après chaque mise à jour du script, sans risque) : prépare le tableau et les déclencheurs
+function installerSuiviEmails() {
+  const ss = getSpreadsheet_(), sh = getSheet_();
+  const cS = colIndex_('status'), cF = colIndex_('followUp'), title = COLUMNS[cF - 1][1];
+  // 1. Colonne « Suivi des e-mails » (AF), réservée au script
+  const head = String(sh.getRange(1, cF).getValue()).trim();
+  if (head && head !== title) throw new Error('La colonne ' + cF + ' (AF) contient déjà « ' + head + ' ». Déplacez cette colonne plus à droite : AF est réservée au suivi des e-mails.');
+  sh.getRange(1, cF).setValue(title).setFontWeight('bold').setBackground('#dcefc9');
+  // 2. Menu déroulant du Statut
+  const values = [STATUS.review, STATUS.imported, STATUS.interview, STATUS.admitted, STATUS.refused];
+  const col = sh.getRange(2, cS, Math.max(1, sh.getMaxRows() - 1), 1);
+  col.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(values, true).setAllowInvalid(false)
+    .setHelpText('Entretien, Admis(e) et Refusé(e) envoient un e-mail automatique 5 à 10 minutes plus tard.').build());
+  // 3. Couleurs du Statut (les autres règles de mise en forme du tableau sont gardées)
+  const colors = [[STATUS.review, '#f9eeda'], [STATUS.imported, '#f9eeda'], [STATUS.interview, '#e7f1fb'], [STATUS.admitted, '#e5f4e4'], [STATUS.refused, '#fbebeb']];
+  const others = sh.getConditionalFormatRules().filter(r => !r.getRanges().some(g => g.getColumn() === cS && g.getNumColumns() === 1));
+  sh.setConditionalFormatRules(others.concat(colors.map(([v, c]) =>
+    SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(v).setBackground(c).setRanges([col]).build())));
+  // 4. Déclencheurs : à chaque modification, et toutes les 5 minutes
+  ScriptApp.getProjectTriggers().filter(t => ['surModificationStatut', 'envoyerSuivis'].indexOf(t.getHandlerFunction()) >= 0)
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('surModificationStatut').forSpreadsheet(ss).onEdit().create();
+  ScriptApp.newTrigger('envoyerSuivis').timeBased().everyMinutes(5).create();
+  console.log('✅ Suivi des e-mails installé : menu déroulant du Statut, couleurs, colonne « ' + title + ' », envoi automatique toutes les 5 minutes.');
+  ['interview', 'admitted'].forEach(k => console.log(followLink_(k)
+    ? '🔗 ' + FOLLOW_PROP[k] + ' : lien en place.'
+    : '⚠️ ' + FOLLOW_PROP[k] + ' manquant : ajoutez-le dans ⚙️ Paramètres du projet → Propriétés du script (lien https://t.me/…). Sans lui, ces e-mails attendent.'));
+}
+
+// Envoie à votre propre adresse les trois e-mails de suivi (en français et en anglais), pour relire les textes et tester les liens
+function testEmailsSuivi() {
+  const me = Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail();
+  FOLLOW_KINDS.forEach(k => {
+    const link = k === 'refused' ? CONFIG.INSTAGRAM_URL : followLink_(k);
+    if (!link) { console.log('⚠️ ' + FOLLOW_PROP[k] + ' manquant : e-mail « ' + FOLLOW_LABEL[k] + ' » non envoyé.'); return; }
+    const m = followEmail_(k, ['fr', 'en'], 'Yasmine Test', link);
+    MailApp.sendEmail({ to: me, subject: '[TEST] ' + m.subject, body: m.text, htmlBody: m.html, name: CONFIG.CLUB_NAME });
+    console.log('📧 « ' + FOLLOW_LABEL[k] + ' » envoyé à ' + me);
+  });
 }

@@ -108,6 +108,34 @@ Au moment de l'envoi, le site demande à Cloudflare une preuve que le visiteur e
 
 La vérification est active dès que la propriété existe, sans nouveau déploiement. Pour la couper (par exemple si Cloudflare a une panne), supprimez la propriété `TURNSTILE_SECRET`. En cas de fuite de la Secret Key : dans Cloudflare, **Rotate secret key**, puis remplacez la valeur de la propriété.
 
+## E-mails automatiques : entretien, admission, refus
+
+Le responsable des inscriptions choisit le Statut de chaque ligne dans le menu déroulant. Trois Statuts envoient un e-mail, depuis le compte du script :
+
+| Statut | E-mail envoyé |
+|---|---|
+| **Entretien** | Invitation à un court entretien, avec le lien Telegram de l'entretien |
+| **Admis(e)** | Bienvenue au club, avec le lien du groupe Telegram du club |
+| **Refusé(e)** | Pas de place cette saison (possible avant ou après l'entretien) |
+
+- L'e-mail part **5 à 10 minutes** après le changement de Statut : pour annuler une erreur, il suffit de remettre le bon Statut avant.
+- La colonne **AF « Suivi des e-mails »** est tenue par le script : ⏳ puis ⌛ = programmé, ✓ = envoyé (avec la date), ⚠️ = problème (le script réessaie toutes les 5 minutes). Chaque e-mail ne part qu'une fois par personne.
+- Langue : celle choisie sur le site (FR ou EN) ; les deux pour les réponses importées de Google Forms.
+
+**Les liens Telegram ne vont jamais dans le code** : le code est public sur GitHub, et un lien d'invitation permettrait à n'importe qui de rejoindre le groupe. Ils se mettent dans ⚙️ **Paramètres du projet → Propriétés du script** :
+
+- `LIEN_ENTRETIEN` : le lien Telegram de l'entretien (`https://t.me/…`) ;
+- `LIEN_GROUPE_TELEGRAM` : le lien d'invitation du groupe du club.
+
+Installation :
+
+1. Collez le nouveau `Code.gs` et enregistrez (pas de nouveau déploiement nécessaire).
+2. Ajoutez les deux propriétés ci-dessus.
+3. Lancez `installerSuiviEmails`. Si Google demande une autorisation, acceptez-la comme pour `testEmail`.
+4. Lancez `testEmailsSuivi` et vérifiez les trois e-mails reçus et leurs liens.
+
+Pour changer un lien plus tard (par exemple si le lien du groupe a fuité), remplacez simplement la valeur de la propriété : rien d'autre à faire. Les textes des e-mails sont dans `FOLLOW_TXT`, en haut de la section « E-mails de suivi » du code.
+
 ## En cas d'attaque ou de doute
 
 Ces fonctions se lancent depuis l'éditeur (liste en haut → ▶ Exécuter) et agissent **immédiatement, sans nouveau déploiement** :
@@ -120,6 +148,8 @@ Ces fonctions se lancent depuis l'éditeur (liste en haut → ▶ Exécuter) et 
 | `ouvrirInscriptions` | Rouvrir les inscriptions. |
 | `changerCleJetons` | Si la clé secrète a pu fuiter (par exemple si quelqu'un a eu accès au projet) : tous les anciens jetons deviennent invalides. Les visiteurs n'ont rien à faire. |
 | `testEmail` | Après chaque mise à jour : vérifie que tout est en place. |
+| `installerSuiviEmails` | **Une fois** (et après chaque mise à jour du script, sans risque). Installe les e-mails automatiques de suivi : menu déroulant et couleurs du Statut, colonne AF « Suivi des e-mails », envoi toutes les 5 minutes. Voir la section ci-dessous. |
+| `testEmailsSuivi` | Vous envoie les trois e-mails de suivi (entretien, admission, refus) en français et en anglais, pour relire les textes et tester les liens Telegram. |
 | `importerAnciennesInscriptions` | Une fois, pour réunir les anciennes réponses Google Forms avec celles du site. Copiez d'abord l'onglet des réponses Forms dans ce tableau (clic droit sur l'onglet → **Copier vers**) et renommez-le exactement **« Anciennes inscriptions (Forms) »**. Chaque réponse devient une ligne avec le Statut « Importée (Forms) », sans envoyer d'e-mail. Une adresse déjà présente n'est jamais ajoutée deux fois, et l'onglet Forms n'est pas modifié. |
 - **Droits du script** : grâce à la mention `@OnlyCurrentDoc` en haut du code, le script n'a accès qu'au tableau auquel il est rattaché, pas au reste de votre Drive. Il doit donc toujours être ouvert depuis le tableau (**Extensions → Apps Script**).
 - **Partage du tableau** : un « Éditeur » du tableau peut aussi modifier le script, qui s'exécute avec votre compte. Ne donnez ce rôle qu'à des personnes de totale confiance ; pour les autres, choisissez « Lecteur » ou « Commentateur ».
