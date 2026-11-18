@@ -43,7 +43,7 @@ const CONFIG = {
   MAIL_RESERVE: 5,
   // Anti-robot Cloudflare Turnstile : actif dès que la propriété du script TURNSTILE_SECRET existe (voir GUIDE.md).
   // Seules les vérifications faites sur ces adresses sont acceptées.
-  TURNSTILE_HOSTNAMES: ['n8ft6.github.io']
+  TURNSTILE_HOSTNAMES: ['hopebudsclub.github.io', 'n8ft6.github.io']
 };
 /* =========================================================== */
 

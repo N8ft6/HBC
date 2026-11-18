@@ -4,7 +4,7 @@ Site officiel du **Hope Buds Club**, club scientifique de la Faculté des
 Sciences de l'Université d'Alger 1 : écologie, biodiversité, économie
 circulaire et sensibilisation.
 
-👉 **Site officiel : https://n8ft6.github.io/HBC/**
+👉 **Site officiel : https://hopebudsclub.github.io/**
 
 Suivez le club : [Instagram](https://www.instagram.com/hopebudsclub/) ·
 [TikTok](https://www.tiktok.com/@hopebudsclub) ·

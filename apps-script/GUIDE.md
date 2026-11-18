@@ -100,7 +100,7 @@ Enregistrez, puis publiez le site (commit + push). Vous pouvez aussi me demander
 
 Au moment de l'envoi, le site demande à Cloudflare une preuve que le visiteur est humain (le plus souvent sans rien lui montrer ; une case à cocher n'apparaît qu'en cas de doute). Le script fait vérifier cette preuve par Cloudflare avant d'enregistrer quoi que ce soit.
 
-1. Sur <https://dash.cloudflare.com> (compte gratuit) : **Turnstile → Add widget**. Nom : `HBC inscriptions`, hostname : `n8ft6.github.io`, mode : **Managed**. Cloudflare donne deux clés :
+1. Sur <https://dash.cloudflare.com> (compte gratuit) : **Turnstile → Add widget**. Nom : `HBC inscriptions`, hostname : `hopebudsclub.github.io`, mode : **Managed**. Cloudflare donne deux clés :
    - la **Site Key**, publique : elle va dans `app.js` (`TURNSTILE_SITEKEY`) ;
    - la **Secret Key**, **secrète** : ne l'écrivez jamais dans le code ni dans un message.
 2. Dans l'éditeur Apps Script : ⚙️ **Paramètres du projet → Propriétés du script → Ajouter une propriété du script**. Propriété : `TURNSTILE_SECRET`, valeur : la Secret Key. Enregistrez.

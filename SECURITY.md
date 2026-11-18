@@ -6,7 +6,7 @@ Vous avez trouvé une faille dans le site ou dans le formulaire d'inscription du
 Hope Buds Club ? **Merci de ne pas ouvrir d'issue publique.**
 
 Signalez-la en privé avec le bouton **« Report a vulnerability »** de l'onglet
-[Security](https://github.com/N8ft6/HBC/security) de ce dépôt.
+[Security](https://github.com/hopebudsclub/hopebudsclub.github.io/security) de ce dépôt.
 
 Décrivez si possible :
 - ce que vous avez constaté et sur quelle page ;
@@ -21,7 +21,7 @@ publication.
 Found a vulnerability in the Hope Buds Club website or registration form?
 **Please do not open a public issue.** Report it privately with the
 **"Report a vulnerability"** button in this repository's
-[Security](https://github.com/N8ft6/HBC/security) tab.
+[Security](https://github.com/hopebudsclub/hopebudsclub.github.io/security) tab.
 
 ## Bon à savoir
 
@@ -30,4 +30,4 @@ Found a vulnerability in the Hope Buds Club website or registration form?
   script est publique par conception : elle permet seulement d'ajouter une
   inscription, jamais de lire les données.
 - Méfiez-vous des copies : le seul site officiel est
-  **https://n8ft6.github.io/HBC/**.
+  **https://hopebudsclub.github.io/**.
