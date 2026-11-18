@@ -626,3 +626,76 @@ function changerCleJetons() {
   secretCache_ = null;
   console.log('🔑 Nouvelle clé des jetons en place. Les anciens jetons ne fonctionnent plus.');
 }
+
+/* ---------- Import des anciennes réponses Google Forms ----------
+   1. Copiez l'onglet des réponses Forms dans ce tableau (clic droit sur l'onglet → Copier vers → Feuille de calcul existante).
+   2. Renommez la copie exactement « Anciennes inscriptions (Forms) ».
+   3. Lancez importerAnciennesInscriptions (▶ Exécuter).
+   Chaque réponse devient une ligne de l'onglet des inscriptions, avec le Statut « Importée (Forms) ».
+   Aucun e-mail n'est envoyé. On peut relancer sans risque : une adresse déjà présente n'est jamais ajoutée deux fois,
+   et ces personnes ne pourront pas se réinscrire en double depuis le site. L'onglet Forms n'est pas modifié. */
+const FORMS_SHEET = 'Anciennes inscriptions (Forms)';
+// Numéro de colonne dans Google Forms (0 = la première, « Horodateur ») → colonne du site
+const FORMS_MAP = {
+  name: 2, faculty: 3, department: 4, specialty: 5, level: 6, studentId: 7, phone: 8, telegram: 10,
+  why: 11, interests: 12, skills: 13, choice1: 14, why1: 15, exp1: 16, expText1: 17,
+  choice2: 18, why2: 19, exp2: 20, expText2: 21, availability: 22, when: 23, outside: 24,
+  commitment: 25, gain: 26, activity: 27, ideas: 28
+};
+// Mots attendus dans les titres : si le formulaire a changé, l'import s'arrête au lieu de mélanger les colonnes
+const FORMS_CHECK = [[0, 'horodat'], [1, 'e-mail'], [2, 'full name'], [9, 'email address'], [14, 'most'], [18, 'second'], [23, 'when'], [28, 'ideas']];
+const FORMS_EMAIL_ = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function importerAnciennesInscriptions() {
+  const src = getSpreadsheet_().getSheetByName(FORMS_SHEET);
+  if (!src) throw new Error('Onglet « ' + FORMS_SHEET + ' » introuvable. Copiez d’abord l’onglet des réponses Forms dans ce tableau, puis renommez-le exactement ainsi.');
+  const last = src.getLastRow(), width = src.getLastColumn();
+  if (width < 29) throw new Error('L’onglet Forms a ' + width + ' colonnes au lieu de 29 : le formulaire a changé, import annulé.');
+  const head = src.getRange(1, 1, 1, width).getDisplayValues()[0].map(h => String(h).toLowerCase());
+  FORMS_CHECK.forEach(([i, word]) => {
+    if (head[i].indexOf(word) < 0) throw new Error('Colonne ' + (i + 1) + ' inattendue (« ' + head[i].slice(0, 50) + ' ») : le formulaire a changé, import annulé.');
+  });
+  if (last < 2) { console.log('Aucune réponse à importer.'); return; }
+  const shown = src.getRange(2, 1, last - 1, width).getDisplayValues(); // texte tel qu'affiché : garde le 0 des téléphones
+  const stamps = src.getRange(2, 1, last - 1, 1).getValues();            // vraies dates pour l'horodateur
+
+  const sheet = getSheet_();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000); // les inscriptions du site attendent la fin de l'import
+  let added = 0, dup = 0;
+  const noMail = [];
+  try {
+    const n = sheet.getLastRow();
+    const seen = new Set(n < 2 ? [] : sheet.getRange(2, colIndex_('email'), n - 1, 1).getValues().map(r => String(r[0]).trim().toLowerCase()));
+    const rows = [];
+    shown.forEach((r, i) => {
+      if (!r.join('').trim()) return; // ligne vide
+      const a = String(r[1]).trim().toLowerCase(), b = String(r[9]).trim().toLowerCase();
+      const email = FORMS_EMAIL_.test(a) ? a : FORMS_EMAIL_.test(b) ? b : '';
+      if (!email) { noMail.push(i + 2); return; }
+      const other = b && b !== email && FORMS_EMAIL_.test(b) ? b : '';
+      if (seen.has(email) || (other && seen.has(other))) { dup++; return; }
+      seen.add(email); if (other) seen.add(other);
+      const d = {};
+      Object.keys(FORMS_MAP).forEach(k => { d[k] = r[FORMS_MAP[k]]; });
+      if (other) d.ideas = 'Autre e-mail indiqué : ' + other + (d.ideas ? ' | ' + d.ideas : '');
+      const t = stamps[i][0];
+      rows.push(COLUMNS.map(([k]) => {
+        if (k === 'createdAt') return t instanceof Date ? t : cellValue_('horodateur', { horodateur: r[0] });
+        if (k === 'status') return 'Importée (Forms)';
+        if (k === 'mailStatus') return 'Google Forms';
+        if (k === 'lang') return '';
+        if (k === 'email') return cellValue_('email', { email: email });
+        return cellValue_(k, d);
+      }));
+    });
+    if (rows.length) sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, COLUMNS.length).setValues(rows);
+    added = rows.length;
+  } finally {
+    lock.releaseLock();
+  }
+  console.log('✅ ' + added + ' inscription(s) importée(s) dans « ' + CONFIG.SHEET_NAME + ' », Statut « Importée (Forms) ».');
+  if (dup) console.log('↩️ ' + dup + ' déjà présente(s) (même adresse e-mail), ignorée(s).');
+  if (noMail.length) console.log('⚠️ Sans adresse e-mail valide, non importée(s) : ligne(s) ' + noMail.join(', ') + ' de l’onglet Forms. À ajouter à la main.');
+  console.log('L’onglet « ' + FORMS_SHEET + ' » n’a pas été modifié : gardez-le comme archive, ou supprimez-le une fois l’import vérifié.');
+}
