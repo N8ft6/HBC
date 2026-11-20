@@ -120,6 +120,25 @@
     const pairs = el.dataset.i18nAttr.split(';').map(p => p.split(':'));
     return { el, pairs: pairs.map(([a, k]) => ({ a, k, en: el.getAttribute(a) })) };
   });
+  /* ---------- Registrations open or closed: ONE switch for the whole site ----------
+     false = the form never opens. The announcement says registrations are closed, the "Register"
+     buttons lead to the Join section, whose button becomes "Follow us on Instagram", and the
+     floating button is hidden. The Google script is closed too (fermerInscriptions).
+     To reopen: set true, bump ?v= on app.js in index.html, push, then run ouvrirInscriptions. */
+  const REGISTRATIONS_OPEN = false;
+  if (!REGISTRATIONS_OPEN) {
+    document.documentElement.classList.add('reg-closed');
+    const CLOSED = {
+      'hero.eyebrow': ['🔒 HBC registrations are closed for now', '🔒 Les inscriptions HBC sont fermées pour le moment'],
+      'cta.adv': ['Stay in the loop', 'Restez informé(e)'],
+      'join.eyebrow': ['Registrations 2026–2027 · Closed for now', 'Inscriptions 2026–2027 · Fermées pour le moment'],
+      'join.lede': ['Registrations are closed for now. Follow us on Instagram so you don’t miss the next opening! 🌱', 'Les inscriptions sont fermées pour le moment. Suivez-nous sur Instagram pour ne pas rater la prochaine ouverture ! 🌱'],
+      'cta.reg': ['Follow us on Instagram', 'Suivez-nous sur Instagram']
+    };
+    i18nEls.forEach(el => { const c = CLOSED[el.dataset.i18n]; if (c) { el._en = c[0]; FR[el.dataset.i18n] = c[1]; el.innerHTML = c[0]; } });
+    const insta = $('.join-cta [data-register]');
+    if (insta) { insta.removeAttribute('data-register'); insta.href = 'https://www.instagram.com/hopebudsclub/'; insta.target = '_blank'; insta.rel = 'noopener noreferrer'; }
+  }
   function setLang(l, init) {
     lang = l === 'fr' ? 'fr' : 'en';
     document.documentElement.lang = lang;
@@ -1527,6 +1546,7 @@
   const closeDlg = d => { if (typeof d.close === 'function') d.close(); else d.removeAttribute('open'); };
   $$('[data-register]').forEach(b => b.addEventListener('click', e => {
     e.preventDefault(); closeMenu();
+    if (!REGISTRATIONS_OPEN) { if (joinSec) joinSec.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } // closed: show the Join section instead of the form
     if (!doneView.hidden) { doneView.hidden = true; formView.hidden = false; showStep(0, true); }
     if (b.dataset.cell) { const r = $(`input[name="choice1"][value="${b.dataset.cell}"]`, regForm); if (r) { r.checked = true; syncChoice2(); } }
     if (FORM_ENDPOINT) getToken();

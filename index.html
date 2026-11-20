@@ -37,13 +37,13 @@
 <meta name="referrer" content="strict-origin">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Hope Buds Club (HBC) · Club scientifique, Université d'Alger 1</title>
-<meta name="description" content="Hope Buds Club (HBC), club scientifique de la Faculté des Sciences de l'Université d'Alger 1 : écologie, biodiversité, économie circulaire et sensibilisation. Inscriptions 2026-2027 ouvertes.">
+<meta name="description" content="Hope Buds Club (HBC), club scientifique de la Faculté des Sciences de l'Université d'Alger 1 : écologie, biodiversité, économie circulaire et sensibilisation.">
 <!-- Search engines and link previews (WhatsApp, Instagram, Telegram…): the club's official address and identity -->
 <link rel="canonical" href="https://hopebudsclub.github.io/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Hope Buds Club">
 <meta property="og:title" content="Hope Buds Club (HBC) · Université d'Alger 1">
-<meta property="og:description" content="Club scientifique de la Faculté des Sciences : écologie, biodiversité, économie circulaire. Inscriptions 2026-2027 ouvertes.">
+<meta property="og:description" content="Club scientifique de la Faculté des Sciences : écologie, biodiversité, économie circulaire.">
 <meta property="og:url" content="https://hopebudsclub.github.io/">
 <meta property="og:locale" content="fr_DZ">
 <meta property="og:locale:alternate" content="en_US">
@@ -950,6 +950,7 @@ p,li,dd{text-wrap:pretty}
 .hero h1{font-size:clamp(58px,min(9.6vw,15.5vh),138px)}
 /* floating "Register" button (phones only, see app.js) */
 .fab-reg{display:none}
+.reg-closed .fab-reg{display:none!important} /* registrations closed (REGISTRATIONS_OPEN in app.js): no floating button */
 @media(max-width:700px){
   .fab-reg{display:inline-flex;align-items:center;gap:10px;position:fixed;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 18px);z-index:46;height:48px;padding:0 20px 0 18px;border-radius:999px;background:var(--blue);color:#fff;font:600 15px var(--f-body);text-decoration:none;box-shadow:0 14px 30px -12px color-mix(in srgb,var(--blue) 70%,transparent);opacity:0;transform:translateY(16px);pointer-events:none;transition:opacity .35s,transform .45s var(--ease)}
   .fab-reg .sap{width:8px;height:8px;border-radius:50%;background:#7fd650;box-shadow:0 0 0 4px rgba(127,214,80,.25)}
@@ -1461,6 +1462,6 @@ p,li,dd{text-wrap:pretty}
      into the global scope. After editing app.js, change the ?v= number
      below so visitors' browsers load the new version.
      ===================================================================== -->
-<script src="app.js?v=20261118b"></script>
+<script src="app.js?v=20261120a"></script>
 
 </body></html>
